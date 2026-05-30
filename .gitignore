@@ -1,0 +1,5 @@
+/vendor/
+/public/
+/.idea/
+/.osp/
+/.phpunit.result.cache

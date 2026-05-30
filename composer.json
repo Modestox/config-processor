@@ -1,0 +1,30 @@
+{
+    "name": "modestox/config-processor",
+    "description": "Native PHP configuration processor",
+    "authors": [
+        {
+            "name": "Sergey Kuzmitsky"
+        }
+    ],
+    "type": "library",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Modestox\\ConfigProcessor\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Modestox\\ConfigProcessor\\Tests\\": "tests/"
+        }
+    },
+    "require": {
+        "php": ">=8.0"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^9.6"
+    },
+    "scripts": {
+        "test": "phpunit"
+    }
+}
