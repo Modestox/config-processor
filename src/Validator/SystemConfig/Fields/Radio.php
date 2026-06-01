@@ -18,5 +18,5 @@ namespace Modestox\ConfigProcessor\Validator\SystemConfig\Fields;
  */
 class Radio extends Select
 {
-    // Inherits all validation rules from Select seamlessly
+    // Inherits all validation rules and 'validateCommon' integration from Select
 }

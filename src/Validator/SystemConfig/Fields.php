@@ -13,6 +13,8 @@ namespace Modestox\ConfigProcessor\Validator\SystemConfig;
 
 use Modestox\ConfigProcessor\Validator\ValidatorInterface;
 use Modestox\ConfigProcessor\Validator\SystemConfig\Fields\FieldValidatorInterface;
+use Modestox\ConfigProcessor\Exception\InvalidConfigException;
+
 use Modestox\ConfigProcessor\Validator\SystemConfig\Fields\Text;
 use Modestox\ConfigProcessor\Validator\SystemConfig\Fields\Boolean;
 use Modestox\ConfigProcessor\Validator\SystemConfig\Fields\Select;
@@ -20,7 +22,11 @@ use Modestox\ConfigProcessor\Validator\SystemConfig\Fields\Multiselect;
 use Modestox\ConfigProcessor\Validator\SystemConfig\Fields\Radio;
 use Modestox\ConfigProcessor\Validator\SystemConfig\Fields\Checkbox;
 use Modestox\ConfigProcessor\Validator\SystemConfig\Fields\Textarea;
-use Modestox\ConfigProcessor\Exception\InvalidConfigException;
+use Modestox\ConfigProcessor\Validator\SystemConfig\Fields\Number;
+use Modestox\ConfigProcessor\Validator\SystemConfig\Fields\YesNo;
+use Modestox\ConfigProcessor\Validator\SystemConfig\Fields\Datetime;
+use Modestox\ConfigProcessor\Validator\SystemConfig\Fields\Password;
+use Modestox\ConfigProcessor\Validator\SystemConfig\Fields\DynamicRows;
 
 /**
  * Class Fields
@@ -36,19 +42,24 @@ class Fields implements ValidatorInterface
 
     /**
      * Fields constructor.
-     * Injects type-specific validators using standard DI patterns.
+     * Injects type-specific validators.
      */
     public function __construct(array $validators = [])
     {
-        // Fallback initialization for out-of-the-box usage, keeping DI container compatible
         $this->validators = $validators !== [] ? $validators : [
-            'text'        => new Text(),
-            'boolean'     => new Boolean(),
-            'select'      => new Select(),
-            'multiselect' => new Multiselect(),
-            'radio'       => new Radio(),
-            'checkbox'    => new Checkbox(),
-            'textarea'    => new Textarea(),
+            'text'         => new Text(),
+            'boolean'      => new Boolean(),
+            'select'       => new Select(),
+            'multiselect'  => new Multiselect(),
+            'radio'        => new Radio(),
+            'checkbox'     => new Checkbox(),
+            'textarea'     => new Textarea(),
+            'number'       => new Number(),
+            'yes_no'       => new YesNo(),
+            'datetime'     => new Datetime(),
+            'password'     => new Password(),
+            'dynamic_rows' => new DynamicRows(),
+
         ];
     }
 
@@ -68,56 +79,83 @@ class Fields implements ValidatorInterface
                 throw new InvalidConfigException("Configuration for field '{$fieldId}' must be an array.");
             }
 
-            if (!isset($fieldData['type'])) {
-                throw new InvalidConfigException("Field '{$fieldId}' is missing its mandatory 'type' parameter.");
-            }
-
-            if (!is_string($fieldData['type'])) {
-                throw new InvalidConfigException("Field 'type' for field '{$fieldId}' must be a strict string.");
+            if (!isset($fieldData['type']) || !is_string($fieldData['type'])) {
+                throw new InvalidConfigException("Field '{$fieldId}' must have a valid 'type' string parameter.");
             }
 
             $type = trim($fieldData['type']);
 
-            // Validate common metadata 'label' for ALL fields
-            $label = $fieldId;
-            if (isset($fieldData['label'])) {
-                if (!is_string($fieldData['label'])) {
-                    throw new InvalidConfigException("Field 'label' for field '{$fieldId}' must be a strict string.");
-                }
-                $trimmedLabel = trim($fieldData['label']);
-                if ($trimmedLabel !== '') {
-                    $label = $trimmedLabel;
-                }
+            if (!isset($this->validators[$type])) {
+                $allowed = implode(', ', array_keys($this->validators));
+                throw new InvalidConfigException("Unsupported type '{$type}' in field '{$fieldId}'. Supported: {$allowed}.");
             }
 
-            // Validate common metadata 'sort_order' for ALL fields
-            $sortOrder = 0;
-            if (isset($fieldData['sort_order'])) {
-                if (!is_int($fieldData['sort_order'])) {
-                    throw new InvalidConfigException("Field 'sort_order' for field '{$fieldId}' must be a strict integer.");
-                }
-                $sortOrder = $fieldData['sort_order'];
-            }
-
+            // Centralized base metadata validation
             $baseMeta = [
                 'type'       => $type,
-                'label'      => $label,
-                'sort_order' => $sortOrder,
+                'label'      => $this->validateLabel($fieldId, $fieldData),
+                'sort_order' => $this->validateSortOrder($fieldData, $fieldId),
             ];
 
-            // Delegate validation to the specific registered type validator strategy
-            if (!isset($this->validators[$type])) {
-                $allowedTypes = implode(', ', array_keys($this->validators));
-                throw new InvalidConfigException(
-                    "Field '{$fieldId}' uses an unsupported type '{$type}'. Supported types are: {$allowedTypes}.",
-                );
-            }
-
             $cleanFields[$fieldId] = $this->validators[$type]->validate($fieldId, $fieldData, $baseMeta);
+        }
+
+        // Step 2: Cross-validation of 'depends' constraints strictly inside this group
+        foreach ($fields as $fieldId => $fieldData) {
+            if (isset($fieldData['depends'])) {
+                if (!is_array($fieldData['depends'])) {
+                    throw new InvalidConfigException("The 'depends' parameter for field '{$fieldId}' must be an array.");
+                }
+
+                if (count($fieldData['depends']) !== 1) {
+                    throw new InvalidConfigException("Field '{$fieldId}' can only depend on exactly one parent field condition.");
+                }
+
+                $parentFieldId = (string)key($fieldData['depends']);
+                $expectedValue = current($fieldData['depends']);
+
+                if (!array_key_exists($parentFieldId, $cleanFields)) {
+                    throw new InvalidConfigException(
+                        "Field '{$fieldId}' depends on an undefined parent field '{$parentFieldId}' within the same group.",
+                    );
+                }
+
+                if (!is_scalar($expectedValue)) {
+                    throw new InvalidConfigException("The dependency target value for field '{$fieldId}' must be a strict scalar value.");
+                }
+
+                $cleanFields[$fieldId]['depends'] = [
+                    $parentFieldId => $expectedValue,
+                ];
+            } else {
+                $cleanFields[$fieldId]['depends'] = null;
+            }
         }
 
         uasort($cleanFields, fn(array $a, array $b): int => $a['sort_order'] <=> $b['sort_order']);
 
         return $cleanFields;
+    }
+
+    private function validateLabel(string $fieldId, array $data): string
+    {
+        if (isset($data['label'])) {
+            if (!is_string($data['label'])) {
+                throw new InvalidConfigException("Field 'label' for '{$fieldId}' must be a strict string.");
+            }
+            return trim($data['label']) !== '' ? trim($data['label']) : $fieldId;
+        }
+        return $fieldId;
+    }
+
+    private function validateSortOrder(array $data, string $fieldId): int
+    {
+        if (isset($data['sort_order'])) {
+            if (!is_int($data['sort_order'])) {
+                throw new InvalidConfigException("Field 'sort_order' for '{$fieldId}' must be a strict integer.");
+            }
+            return $data['sort_order'];
+        }
+        return 0;
     }
 }

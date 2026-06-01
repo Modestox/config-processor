@@ -18,5 +18,5 @@ namespace Modestox\ConfigProcessor\Validator\SystemConfig\Fields;
  */
 class Checkbox extends Multiselect
 {
-    // Inherits all validation rules from Multiselect seamlessly
+    // Inherits all validation rules and 'validateCommon' integration from Multiselect
 }

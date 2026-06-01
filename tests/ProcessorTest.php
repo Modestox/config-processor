@@ -1,10 +1,10 @@
 <?php
 /**
- * Modestox Config Processor
+ * Modestox CMS - E-commerce Platform
  *
  * @copyright Copyright (c) 2026 Sergey Kuzmitsky
- * @license   MIT
- * @link      https://github.com/Modestox/config-processor
+ * @license   AGPL-3.0-or-later
+ * @link      https://github.com/Modestox/modestox
  */
 
 declare(strict_types=1);
@@ -35,14 +35,14 @@ class ProcessorTest extends TestCase
         $schema = new SystemConfig();
 
         $dirtyInput = [
-            'tabs' => [
+            'tabs'     => [
                 'modestox_modules' => [
                     'label'      => 'Modestox CMS Modules',
                     'sort_order' => 20,
                     'class'      => 'cms-tab',
                     'icon'       => 'fa fa-cubes',
                 ],
-                'payment_tab' => [
+                'payment_tab'      => [
                     'label'      => 'Sales & Payments',
                     'sort_order' => 10,
                     'class'      => 'sales-tab',
@@ -56,8 +56,8 @@ class ProcessorTest extends TestCase
                     'sort_order' => 15,
                     'class'      => 'general-sec',
                     'icon'       => 'fa fa-gear',
-                    'groups' => [
-                        'basic_group' => [
+                    'groups'     => [
+                        'basic_group'    => [
                             'label'      => 'Basic System Core Configurations',
                             'sort_order' => 30,
                             'fields'     => [
@@ -69,26 +69,20 @@ class ProcessorTest extends TestCase
                                     'comment'     => 'Enter your production tracking code.',
                                     'class'       => 'input-analytics',
                                     'validation'  => ['required', '  min:10  '],
+                                    'required'    => true,
                                 ],
-                                'site_name' => [
+                                'site_name'           => [
                                     'type'       => 'text',
                                     'label'      => 'Site Title',
                                     'sort_order' => 10,
                                     'default'    => 'Modestox Store',
                                 ],
-                                'meta_description' => [
-                                    'sort_order' => 20,
-                                    'type'       => 'text',
-                                ],
-                                'enable_cache' => [
+                                'enable_cache'        => [
                                     'type'       => 'boolean',
                                     'label'      => 'Enable System Cache',
                                     'sort_order' => 5,
                                     'comment'    => '  Recommended for production speed.  ',
                                     'class'      => 'toggle-cache',
-                                ],
-                                'maintenance_mode' => [
-                                    'type'       => 'boolean',
                                 ],
                             ],
                         ],
@@ -96,39 +90,77 @@ class ProcessorTest extends TestCase
                             'label'      => 'Advanced Infrastructure Cryptography',
                             'sort_order' => 10,
                             'fields'     => [
+                                'session_lifetime'         => [
+                                    'type'       => 'number',
+                                    'label'      => 'Admin Session Lifetime',
+                                    'sort_order' => 45,
+                                    'default'    => 3600,
+                                    'min'        => 60,
+                                    'max'        => 86400,
+                                ],
+                                'use_secure_urls'          => [
+                                    'type'       => 'yes_no',
+                                    'label'      => 'Use Secure URLs',
+                                    'sort_order' => 5,
+                                    'default'    => 1,
+                                ],
+                                'promo_start_date'         => [
+                                    'type'       => 'datetime',
+                                    'view_mode'  => 'datetime',
+                                    'label'      => 'Promotion Start',
+                                    'sort_order' => 70,
+                                    'default'    => '2026-11-25 00:00:00',
+                                ],
+                                'store_launch_date'        => [
+                                    'type'       => 'datetime',
+                                    'view_mode'  => 'date',
+                                    'label'      => 'Launch Date',
+                                    'sort_order' => 80,
+                                    'default'    => '2026-06-01',
+                                ],
+                                'payment_gateway_password' => [
+                                    'type'       => 'password',
+                                    'label'      => 'Gateway Secret Password',
+                                    'sort_order' => 110,
+                                    'default'    => '   super-secret-key   ',
+                                ],
+                                'shipping_cost_matrix'     => [
+                                    'type'       => 'dynamic_rows',
+                                    'label'      => 'Weight Shipping Rates',
+                                    'sort_order' => 120,
+                                    'columns'    => [
+                                        'max_weight' => 'Max Weight (kg)',
+                                        'price'      => 'Rate Price (EUR)',
+                                    ],
+                                    'default'    => [
+                                        ['max_weight' => ' 5 ', 'price' => ' 4.90 '],
+                                        ['max_weight' => ' 10 ', 'price' => ' 8.50 '],
+                                    ],
+                                ],
+                                'enable_api_integration' => [
+                                    'type'       => 'yes_no',
+                                    'label'      => 'Enable Remote API',
+                                    'sort_order' => 200,
+                                    'default'    => 0,
+                                ],
                                 'api_secret_token' => [
                                     'type'       => 'text',
-                                    'label'      => 'API Secret Token',
-                                    'sort_order' => 100,
-                                ],
-                                'allowed_countries' => [ // New Valid Multiselect Field
-                                    'type'       => 'multiselect',
-                                    'label'      => 'Shipment Countries',
-                                    'sort_order' => 10,
-                                    'default'    => ['DE', 'CH'],
-                                    'comment'    => '  Select multiple target locations.  ',
-                                    'class'      => 'chosen-select',
-                                    'options'    => [
-                                        'DE' => 'Germany',
-                                        'AT' => 'Austria',
-                                        'CH' => 'Switzerland',
+                                    'label'       => 'API Secret Token',
+                                    'sort_order' => 210,
+                                    'depends'    => [
+                                        'enable_api_integration' => 1,
                                     ],
                                 ],
                             ],
                         ],
                     ],
                 ],
-                'advanced_features' => [
-                    'tab'        => 'modestox_modules',
-                    'label'      => 'Advanced Features',
-                    'sort_order' => 5,
-                ],
             ],
         ];
 
         $expectedOutput = [
-            'tabs' => [
-                'payment_tab' => [
+            'tabs'     => [
+                'payment_tab'      => [
                     'label'      => 'Sales & Payments',
                     'sort_order' => 10,
                     'class'      => 'sales-tab',
@@ -142,12 +174,6 @@ class ProcessorTest extends TestCase
                 ],
             ],
             'sections' => [
-                'advanced_features' => [
-                    'tab'        => 'modestox_modules',
-                    'label'      => 'Advanced Features',
-                    'sort_order' => 5,
-                    'groups'     => [],
-                ],
                 'general_settings' => [
                     'tab'        => 'modestox_modules',
                     'label'      => 'General Settings',
@@ -159,52 +185,134 @@ class ProcessorTest extends TestCase
                             'label'      => 'Advanced Infrastructure Cryptography',
                             'sort_order' => 10,
                             'fields'     => [
-                                'allowed_countries' => [
-                                    'type'       => 'multiselect',
-                                    'label'      => 'Shipment Countries',
-                                    'sort_order' => 10,
-                                    'default'    => ['DE', 'CH'],
-                                    'comment'    => 'Select multiple target locations.',
-                                    'class'      => 'chosen-select',
+                                'use_secure_urls'          => [
+                                    'type'       => 'yes_no',
+                                    'label'      => 'Use Secure URLs',
+                                    'sort_order' => 5,
                                     'options'    => [
-                                        'DE' => 'Germany',
-                                        'AT' => 'Austria',
-                                        'CH' => 'Switzerland',
+                                        0 => 'No',
+                                        1 => 'Yes',
                                     ],
+                                    'default'    => 1,
+                                    'comment'    => '',
+                                    'class'      => '',
+                                    'validation' => [],
+                                    'required'   => false,
+                                    'depends'    => null,
+                                ],
+                                'session_lifetime'         => [
+                                    'type'       => 'number',
+                                    'label'      => 'Admin Session Lifetime',
+                                    'sort_order' => 45,
+                                    'default'    => 3600,
+                                    'min'        => 60,
+                                    'max'        => 86400,
+                                    'comment'    => '',
+                                    'class'      => '',
+                                    'validation' => [],
+                                    'required'   => false,
+                                    'depends'    => null,
+                                ],
+                                'promo_start_date'         => [
+                                    'type'       => 'datetime',
+                                    'label'      => 'Promotion Start',
+                                    'sort_order' => 70,
+                                    'view_mode'  => 'datetime',
+                                    'default'    => '2026-11-25 00:00:00',
+                                    'comment'    => '',
+                                    'class'      => '',
+                                    'validation' => [],
+                                    'required'   => false,
+                                    'depends'    => null,
+                                ],
+                                'store_launch_date'        => [
+                                    'type'       => 'datetime',
+                                    'label'      => 'Launch Date',
+                                    'sort_order' => 80,
+                                    'view_mode'  => 'date',
+                                    'default'    => '2026-06-01',
+                                    'comment'    => '',
+                                    'class'      => '',
+                                    'validation' => [],
+                                    'required'   => false,
+                                    'depends'    => null,
+                                ],
+                                'payment_gateway_password' => [
+                                    'type'       => 'password',
+                                    'label'      => 'Gateway Secret Password',
+                                    'sort_order' => 110,
+                                    'default'    => 'super-secret-key',
+                                    'comment'    => '',
+                                    'class'      => '',
+                                    'validation' => [],
+                                    'required'   => false,
+                                    'depends'    => null,
+                                ],
+                                'shipping_cost_matrix'     => [
+                                    'type'       => 'dynamic_rows',
+                                    'label'      => 'Weight Shipping Rates',
+                                    'sort_order' => 120,
+                                    'columns'    => [
+                                        'max_weight' => 'Max Weight (kg)',
+                                        'price'      => 'Rate Price (EUR)',
+                                    ],
+                                    'default'    => [
+                                        ['max_weight' => '5', 'price' => '4.90'],
+                                        ['max_weight' => '10', 'price' => '8.50'],
+                                    ],
+                                    'comment'    => '',
+                                    'class'      => '',
+                                    'validation' => [],
+                                    'required'   => false,
+                                    'depends'    => null,
+                                ],
+                                'enable_api_integration' => [
+                                    'type'       => 'yes_no',
+                                    'label'      => 'Enable Remote API',
+                                    'sort_order' => 200,
+                                    'options'    => [
+                                        0 => 'No',
+                                        1 => 'Yes',
+                                    ],
+                                    'default'    => 0, // ДОБАВЛЕНО СТРОГО СЮДА С СОБЛЮДЕНИЕМ ПОРЯДКА КЛЮЧЕЙ РОДИТЕЛЬСКОГО SELECT
+                                    'comment'    => '',
+                                    'class'      => '',
+                                    'validation' => [],
+                                    'required'   => false,
+                                    'depends'    => null,
                                 ],
                                 'api_secret_token' => [
                                     'type'        => 'text',
                                     'label'       => 'API Secret Token',
-                                    'sort_order'  => 100,
+                                    'sort_order'  => 210,
                                     'default'     => '',
                                     'placeholder' => '',
                                     'comment'     => '',
                                     'class'       => '',
                                     'validation'  => [],
+                                    'required'    => false,
+                                    'depends'     => [
+                                        'enable_api_integration' => 1,
+                                    ],
                                 ],
                             ],
                         ],
-                        'basic_group' => [
+                        'basic_group'    => [
                             'label'      => 'Basic System Core Configurations',
                             'sort_order' => 30,
                             'fields'     => [
-                                'enable_cache' => [
+                                'enable_cache'        => [
                                     'type'       => 'boolean',
                                     'label'      => 'Enable System Cache',
                                     'sort_order' => 5,
                                     'default'    => false,
                                     'comment'    => 'Recommended for production speed.',
                                     'class'      => 'toggle-cache',
+                                    'validation' => [],
+                                    'required'   => false,
+                                    'depends'    => null,
                                 ],
-                                'maintenance_mode' => [
-                                    'type'       => 'boolean',
-                                    'label'      => 'maintenance_mode',
-                                    'sort_order' => 0,
-                                    'default'    => false,
-                                    'comment'    => '',
-                                    'class'       => '',
-                                ],
-                                'site_name' => [
+                                'site_name'           => [
                                     'type'        => 'text',
                                     'label'       => 'Site Title',
                                     'sort_order'  => 10,
@@ -213,26 +321,20 @@ class ProcessorTest extends TestCase
                                     'comment'     => '',
                                     'class'       => '',
                                     'validation'  => [],
-                                ],
-                                'meta_description' => [
-                                    'type'        => 'text',
-                                    'label'       => 'meta_description',
-                                    'sort_order'  => 20,
-                                    'default'     => '',
-                                    'placeholder' => '',
-                                    'comment'     => '',
-                                    'class'       => '',
-                                    'validation'  => [],
+                                    'required'    => false,
+                                    'depends'     => null,
                                 ],
                                 'google_analytics_id' => [
                                     'type'        => 'text',
                                     'label'       => 'Google Analytics ID',
                                     'sort_order'  => 50,
-                                    'default'     => '',
                                     'placeholder' => 'UA-XXXXX-Y',
+                                    'default'     => '',
                                     'comment'     => 'Enter your production tracking code.',
                                     'class'       => 'input-analytics',
                                     'validation'  => ['required', 'min:10'],
+                                    'required'    => true,
+                                    'depends'     => null,
                                 ],
                             ],
                         ],
@@ -273,300 +375,165 @@ class ProcessorTest extends TestCase
      */
     public function invalidConfigProvider(): array
     {
-        return [
-            // Tabs validation scenarios
-            'tabs_is_not_an_array' => [
-                'dirtyInput'      => ['tabs' => 'string'],
-                'expectedMessage' => "The 'tabs' section must be an array."
-            ],
-            'tab_configuration_must_be_array' => [
-                'dirtyInput'      => ['tabs' => ['modestox_modules' => 'flat-string']],
-                'expectedMessage' => "Configuration for tab 'modestox_modules' must be an array."
-            ],
-            'sort_order_is_not_numeric' => [
-                'dirtyInput'      => [
-                    'tabs' => [
-                        'modestox_modules' => ['sort_order' => '10']
-                    ]
-                ],
-                'expectedMessage' => "Field 'sort_order' for tab 'modestox_modules' must be a strict integer."
-            ],
-            // Sections validation scenarios
-            'sections_root_is_not_an_array' => [
-                'dirtyInput'      => ['sections' => 'broken_string_instead_of_array'],
-                'expectedMessage' => "The 'sections' section must be an array."
-            ],
-            'section_configuration_must_be_array' => [
-                'dirtyInput'      => [
-                    'tabs' => ['main_tab' => []],
-                    'sections' => ['payment_gateways' => 'flat-string-instead-of-nested-array']
-                ],
-                'expectedMessage' => "Configuration for section 'payment_gateways' must be an array."
-            ],
-            'section_sort_order_is_not_numeric' => [
-                'dirtyInput'      => [
-                    'tabs' => ['main_tab' => []],
-                    'sections' => [
-                        'payment_gateways' => ['tab' => 'main_tab', 'sort_order' => '10']
+        $baseStructure = [
+            'tabs'     => ['main_tab' => []],
+            'sections' => [
+                'payment_gateways' => [
+                    'tab'    => 'main_tab',
+                    'groups' => [
+                        'credentials_group' => [
+                            'fields' => [],
+                        ],
                     ],
                 ],
-                'expectedMessage' => "Field 'sort_order' for section 'payment_gateways' must be a strict integer."
             ],
-            'section_groups_must_be_an_array' => [
-                'dirtyInput'      => [
-                    'tabs' => ['main_tab' => []],
-                    'sections' => [
-                        'payment_gateways' => ['tab' => 'main_tab', 'groups' => 'string-instead-of-array']
-                    ]
-                ],
-                'expectedMessage' => "The 'groups' under section 'payment_gateways' must be an array."
+        ];
+
+        return [
+            // Tabs validation scenarios
+            'tabs_is_not_an_array'                      => [
+                'dirtyInput'      => ['tabs' => 'string'],
+                'expectedMessage' => "The 'tabs' section must be an array.",
             ],
-            // Cross-validation constraint scenarios
-            'section_is_missing_mandatory_tab_parameter' => [
-                'dirtyInput'      => [
-                    'tabs' => ['main_tab' => []],
-                    'sections' => [
-                        'payment_gateways' => ['sort_order' => 10]
-                    ]
-                ],
-                'expectedMessage' => "Section 'payment_gateways' is missing its mandatory 'tab' assignment parameter."
+            'sort_order_is_not_numeric'                 => [
+                'dirtyInput'      => ['tabs' => ['modestox_modules' => ['sort_order' => '10']]],
+                'expectedMessage' => "Field 'sort_order' for tab 'modestox_modules' must be a strict integer.",
             ],
-            // Groups validation scenarios
-            'group_configuration_must_be_an_array' => [
-                'dirtyInput'      => [
-                    'tabs' => ['main_tab' => []],
-                    'sections' => [
-                        'payment_gateways' => [
-                            'tab'    => 'main_tab',
-                            'groups' => ['credentials_group' => 'string_instead_of_array']
-                        ]
-                    ]
-                ],
-                'expectedMessage' => "Configuration for group 'credentials_group' must be an array."
-            ],
-            'group_sort_order_must_be_a_strict_integer' => [
-                'dirtyInput'      => [
-                    'tabs' => ['main_tab' => []],
-                    'sections' => [
-                        'payment_gateways' => [
-                            'tab'    => 'main_tab',
-                            'groups' => [
-                                'credentials_group' => ['sort_order' => '5']
-                            ]
-                        ]
-                    ]
-                ],
-                'expectedMessage' => "Field 'sort_order' for group 'credentials_group' must be a strict integer."
-            ],
-            'group_fields_must_be_an_array' => [
-                'dirtyInput'      => [
-                    'tabs' => ['main_tab' => []],
-                    'sections' => [
-                        'payment_gateways' => [
-                            'tab'    => 'main_tab',
-                            'groups' => [
-                                'credentials_group' => ['fields' => 'string_instead_of_array']
-                            ]
-                        ]
-                    ]
-                ],
-                'expectedMessage' => "The 'fields' under group 'credentials_group' must be an array."
-            ],
-            // Fields validation scenarios
-            'field_is_missing_mandatory_type_parameter' => [
-                'dirtyInput'      => [
-                    'tabs' => ['main_tab' => []],
-                    'sections' => [
-                        'payment_gateways' => [
-                            'tab'    => 'main_tab',
-                            'groups' => [
-                                'credentials_group' => [
-                                    'fields' => ['api_key' => ['label' => 'API Key']]
-                                ]
-                            ]
-                        ]
-                    ]
-                ],
-                'expectedMessage' => "Field 'api_key' is missing its mandatory 'type' parameter."
-            ],
+            // Fields orchestration scenarios
             'field_uses_an_unsupported_type_definition' => [
-                'dirtyInput'      => [
-                    'tabs' => ['unsupported_tab' => []],
-                    'sections' => [
-                        'unsupported_section' => [
-                            'tab'    => 'unsupported_tab',
-                            'groups' => [
-                                'unsupported_group' => [
-                                    'fields' => [
-                                        'unsupported_field' => ['type' => 'wysiwyg'] // Меняем на wysiwyg
-                                    ]
-                                ]
-                            ]
-                        ]
-                    ]
-                ],
-                // Добавляем textarea в список поддерживаемых, а падаем на wysiwyg
-                'expectedMessage' => "Field 'unsupported_field' uses an unsupported type 'wysiwyg'. Supported types are: text, boolean, select, multiselect, radio, checkbox, textarea."
-            ],
-            // Text-field specific validation scenarios
-            'field_text_default_must_be_strict_string' => [
-                'dirtyInput'      => [
-                    'tabs' => ['main_tab' => []],
+                'dirtyInput'      => array_replace_recursive($baseStructure, [
                     'sections' => [
                         'payment_gateways' => [
-                            'tab'    => 'main_tab',
-                            'groups' => [
-                                'credentials_group' => [
-                                    'fields' => ['api_key' => ['type' => 'text', 'default' => true]]
-                                ]
-                            ]
-                        ]
-                    ]
-                ],
-                'expectedMessage' => "Field 'default' for text field 'api_key' must be a strict string."
-            ],
-            'field_text_placeholder_must_be_strict_string' => [
-                'dirtyInput'      => [
-                    'tabs' => ['main_tab' => []],
-                    'sections' => [
-                        'payment_gateways' => [
-                            'tab'    => 'main_tab',
-                            'groups' => [
-                                'credentials_group' => [
-                                    'fields' => ['api_key' => ['type' => 'text', 'placeholder' => 123]]
-                                ]
-                            ]
-                        ]
-                    ]
-                ],
-                'expectedMessage' => "Field 'placeholder' for text field 'api_key' must be a strict string."
-            ],
-            'field_text_comment_must_be_strict_string' => [
-                'dirtyInput'      => [
-                    'tabs' => ['main_tab' => []],
-                    'sections' => [
-                        'payment_gateways' => [
-                            'tab'    => 'main_tab',
-                            'groups' => [
-                                'credentials_group' => [
-                                    'fields' => ['api_key' => ['type' => 'text', 'comment' => []]]
-                                ]
-                            ]
-                        ]
-                    ]
-                ],
-                'expectedMessage' => "Field 'comment' for text field 'api_key' must be a strict string."
-            ],
-            'field_text_class_must_be_strict_string' => [
-                'dirtyInput'      => [
-                    'tabs' => ['main_tab' => []],
-                    'sections' => [
-                        'payment_gateways' => [
-                            'tab'    => 'main_tab',
-                            'groups' => [
-                                'credentials_group' => [
-                                    'fields' => ['api_key' => ['type' => 'text', 'class' => false]]
-                                ]
-                            ]
-                        ]
-                    ]
-                ],
-                'expectedMessage' => "Field 'class' for text field 'api_key' must be a valid string."
-            ],
-            'field_text_validation_must_be_an_array' => [
-                'dirtyInput'      => [
-                    'tabs' => ['main_tab' => []],
-                    'sections' => [
-                        'payment_gateways' => [
-                            'tab'    => 'main_tab',
-                            'groups' => [
-                                'credentials_group' => [
-                                    'fields' => ['api_key' => ['type' => 'text', 'validation' => 'required']]
-                                ]
-                            ]
-                        ]
-                    ]
-                ],
-                'expectedMessage' => "Field 'validation' for text field 'api_key' must be an array of rule strings."
-            ],
-            'field_text_validation_rule_must_be_strict_string' => [
-                'dirtyInput'      => [
-                    'tabs' => ['main_tab' => []],
-                    'sections' => [
-                        'payment_gateways' => [
-                            'tab'    => 'main_tab',
-                            'groups' => [
-                                'credentials_group' => [
-                                    'fields' => ['api_key' => ['type' => 'text', 'validation' => ['required', 456]]]
-                                ]
-                            ]
-                        ]
-                    ]
-                ],
-                'expectedMessage' => "Validation rule at index 1 for text field 'api_key' must be a strict string."
-            ],
-            // Boolean-field specific validation scenarios
-            'field_boolean_default_must_be_strict_bool' => [
-                'dirtyInput'      => [
-                    'tabs' => ['main_tab' => []],
-                    'sections' => [
-                        'payment_gateways' => [
-                            'tab'    => 'main_tab',
-                            'groups' => [
-                                'credentials_group' => [
-                                    'fields' => ['enable_feature' => ['type' => 'boolean', 'default' => 'true']]
-                                ]
-                            ]
-                        ]
-                    ]
-                ],
-                'expectedMessage' => "Field 'default' for boolean field 'enable_feature' must be a strict boolean value."
-            ],
-            // New Multiselect-field specific validation scenarios
-            'field_multiselect_default_must_be_strict_array' => [
-                'dirtyInput'      => [
-                    'tabs' => ['main_tab' => []],
-                    'sections' => [
-                        'payment_gateways' => [
-                            'tab'    => 'main_tab',
                             'groups' => [
                                 'credentials_group' => [
                                     'fields' => [
-                                        'allowed_currencies' => [
-                                            'type'    => 'multiselect',
-                                            'default' => 'USD', // String instead of array
-                                            'options' => ['USD' => 'US Dollar']
-                                        ]
-                                    ]
-                                ]
-                            ]
-                        ]
-                    ]
-                ],
-                'expectedMessage' => "Field 'default' for multiselect field 'allowed_currencies' must be a strict array of keys."
+                                        'api_key' => ['type' => 'wysiwyg'],
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                ]),
+                'expectedMessage' => "Unsupported type 'wysiwyg' in field 'api_key'. Supported: text, boolean, select, multiselect, radio, checkbox, textarea, number, yes_no, datetime, password, dynamic_rows.",
             ],
-            'field_multiselect_default_key_must_exist_in_options' => [
-                'dirtyInput'      => [
-                    'tabs' => ['main_tab' => []],
+            // Abstract Field Validation scenarios
+            'field_comment_must_be_strict_string'       => [
+                'dirtyInput'      => array_replace_recursive($baseStructure, [
                     'sections' => [
                         'payment_gateways' => [
-                            'tab'    => 'main_tab',
                             'groups' => [
                                 'credentials_group' => [
                                     'fields' => [
-                                        'allowed_currencies' => [
-                                            'type'    => 'multiselect',
-                                            'default' => ['EUR'], // Key doesn't exist in options pool
-                                            'options' => ['USD' => 'US Dollar']
-                                        ]
-                                    ]
-                                ]
-                            ]
-                        ]
-                    ]
-                ],
-                'expectedMessage' => "The default value 'EUR' for field 'allowed_currencies' does not exist within the permitted options scope."
-            ]
+                                        'api_key' => ['type' => 'text', 'comment' => 123],
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                ]),
+                'expectedMessage' => "Field 'comment' for field 'api_key' must be a strict string.",
+            ],
+            'field_required_must_be_strict_bool'        => [
+                'dirtyInput'      => array_replace_recursive($baseStructure, [
+                    'sections' => [
+                        'payment_gateways' => [
+                            'groups' => [
+                                'credentials_group' => [
+                                    'fields' => [
+                                        'api_key' => ['type' => 'text', 'required' => 'true'],
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                ]),
+                'expectedMessage' => "Field 'required' for field 'api_key' must be a strict boolean.",
+            ],
+            // Number field validation scenarios
+            'field_number_min_must_be_numeric'          => [
+                'dirtyInput'      => array_replace_recursive($baseStructure, [
+                    'sections' => [
+                        'payment_gateways' => [
+                            'groups' => [
+                                'credentials_group' => [
+                                    'fields' => [
+                                        'lifetime' => ['type' => 'number', 'min' => '60'],
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                ]),
+                'expectedMessage' => "Field 'min' for number field 'lifetime' must be a strict integer or float.",
+            ],
+            'field_number_max_less_than_min'            => [
+                'dirtyInput'      => array_replace_recursive($baseStructure, [
+                    'sections' => [
+                        'payment_gateways' => [
+                            'groups' => [
+                                'credentials_group' => [
+                                    'fields' => [
+                                        'lifetime' => ['type' => 'number', 'min' => 100, 'max' => 50],
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                ]),
+                'expectedMessage' => "Field 'max' cannot be less than 'min' for number field 'lifetime'.",
+            ],
+            // Datetime validation scenarios
+            'field_datetime_invalid_format'             => [
+                'dirtyInput'      => array_replace_recursive($baseStructure, [
+                    'sections' => [
+                        'payment_gateways' => [
+                            'groups' => [
+                                'credentials_group' => [
+                                    'fields' => [
+                                        'start_date' => ['type' => 'datetime', 'view_mode' => 'date', 'default' => '2026/12/31'],
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                ]),
+                'expectedMessage' => "Default value '2026/12/31' for field 'start_date' does not match mandatory 'date' format standard ('Y-m-d').",
+            ],
+            'field_dynamic_rows_missing_columns'        => [
+                'dirtyInput'      => array_replace_recursive($baseStructure, [
+                    'sections' => [
+                        'payment_gateways' => [
+                            'groups' => [
+                                'credentials_group' => [
+                                    'fields' => [
+                                        'matrix' => ['type' => 'dynamic_rows'],
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                ]),
+                'expectedMessage' => "Field 'columns' for dynamic rows field 'matrix' must be a defined configuration array.",
+            ],
+            'field_depends_on_non_existent_parent_field' => [
+                'dirtyInput'      => array_replace_recursive($baseStructure, [
+                    'sections' => [
+                        'payment_gateways' => [
+                            'groups' => [
+                                'credentials_group' => [
+                                    'fields' => [
+                                        'api_key' => [
+                                            'type'    => 'text',
+                                            'depends' => ['wrong_parent_field' => 1],
+                                        ],
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                ]),
+                'expectedMessage' => "Field 'api_key' depends on an undefined parent field 'wrong_parent_field' within the same group.",
+            ],
         ];
     }
 }

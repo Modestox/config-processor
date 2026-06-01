@@ -12,24 +12,23 @@ declare(strict_types=1);
 namespace Modestox\ConfigProcessor\Validator\SystemConfig\Fields;
 
 /**
- * Class Text
+ * Class Password
  *
- * Validates and normalizes attributes specific only to the standard 'text' input field type.
+ * Validates and normalizes password or sensitive API key inputs, masking them by default.
  */
-class Text extends AbstractFieldValidator
+class Password extends AbstractFieldValidator
 {
     /**
      * @inheritDoc
      */
     public function validate(string $fieldId, array $fieldData, array $baseMeta): array
     {
-        // Only validate parameters unique to the 'text' type
+        // Passwords must be strict strings. We trim them to prevent accidental copy-paste spaces.
         $specific = [
-            'default'     => $this->validateString($fieldData, 'default', $fieldId, ''),
-            'placeholder' => $this->validateString($fieldData, 'placeholder', $fieldId, ''),
+            'default' => $this->validateString($fieldData, 'default', $fieldId, ''),
         ];
 
-        // Merge base meta, common meta (via AbstractFieldValidator), and specific attributes
+        // Merge base meta, specific attributes, and shared common fields (comment, class, required)
         return array_merge($baseMeta, $specific, $this->validateCommon($fieldId, $fieldData));
     }
 }
