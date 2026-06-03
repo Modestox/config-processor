@@ -63,6 +63,15 @@ abstract class AbstractFieldValidator implements FieldValidatorInterface
         if (!is_array($data[$key])) {
             throw new InvalidConfigException("Field '{$key}' for field '{$fieldId}' must be an array.");
         }
-        return array_map('trim', $data[$key]);
+
+        $cleanArray = [];
+        foreach ($data[$key] as $index => $value) {
+            if (!is_string($value)) {
+                throw new InvalidConfigException("Validation rule at index '{$index}' for field '{$fieldId}' must be a strict string.");
+            }
+            $cleanArray[$index] = trim($value);
+        }
+
+        return $cleanArray;
     }
 }

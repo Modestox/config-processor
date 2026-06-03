@@ -27,26 +27,22 @@ use Modestox\ConfigProcessor\Validator\SystemConfig\Fields\YesNo;
 use Modestox\ConfigProcessor\Validator\SystemConfig\Fields\Datetime;
 use Modestox\ConfigProcessor\Validator\SystemConfig\Fields\Password;
 use Modestox\ConfigProcessor\Validator\SystemConfig\Fields\DynamicRows;
+use Modestox\ConfigProcessor\Validator\SystemConfig\Fields\File;
+use Modestox\ConfigProcessor\Validator\SystemConfig\Fields\Image;
 
-/**
- * Class Fields
- *
- * Coordinates multi-layered field validations using isolated type strategies.
- */
 class Fields implements ValidatorInterface
 {
-    /**
-     * @var array<string, FieldValidatorInterface>
-     */
-    private array $validators;
+    /** @var array<string, FieldValidatorInterface> */
+    private array $validators = [];
 
     /**
      * Fields constructor.
-     * Injects type-specific validators.
+     *
+     * @param array<string, FieldValidatorInterface> $validators Custom validators to extend or override defaults.
      */
     public function __construct(array $validators = [])
     {
-        $this->validators = $validators !== [] ? $validators : [
+        $this->validators = [
             'text'         => new Text(),
             'boolean'      => new Boolean(),
             'select'       => new Select(),
@@ -59,8 +55,23 @@ class Fields implements ValidatorInterface
             'datetime'     => new Datetime(),
             'password'     => new Password(),
             'dynamic_rows' => new DynamicRows(),
-
+            'file'         => new File(),
+            'image'        => new Image(),
         ];
+
+        foreach ($validators as $type => $validator) {
+            if (is_string($type) && $validator instanceof FieldValidatorInterface) {
+                $this->registerType($type, $validator);
+            }
+        }
+    }
+
+    /**
+     * Dynamically extends the component with a custom field type validator strategy.
+     */
+    public function registerType(string $type, FieldValidatorInterface $validator): void
+    {
+        $this->validators[trim($type)] = $validator;
     }
 
     /**
@@ -74,11 +85,9 @@ class Fields implements ValidatorInterface
             if (!is_string($fieldId)) {
                 throw new InvalidConfigException("The field identifier key must be a valid string.");
             }
-
             if (!is_array($fieldData)) {
                 throw new InvalidConfigException("Configuration for field '{$fieldId}' must be an array.");
             }
-
             if (!isset($fieldData['type']) || !is_string($fieldData['type'])) {
                 throw new InvalidConfigException("Field '{$fieldId}' must have a valid 'type' string parameter.");
             }
@@ -90,7 +99,6 @@ class Fields implements ValidatorInterface
                 throw new InvalidConfigException("Unsupported type '{$type}' in field '{$fieldId}'. Supported: {$allowed}.");
             }
 
-            // Centralized base metadata validation
             $baseMeta = [
                 'type'       => $type,
                 'label'      => $this->validateLabel($fieldId, $fieldData),
@@ -100,33 +108,33 @@ class Fields implements ValidatorInterface
             $cleanFields[$fieldId] = $this->validators[$type]->validate($fieldId, $fieldData, $baseMeta);
         }
 
-        // Step 2: Cross-validation of 'depends' constraints strictly inside this group
+        // Step 2: Cross-validation of MULTIPLE 'depends' constraints (Enterprise ready)
         foreach ($fields as $fieldId => $fieldData) {
             if (isset($fieldData['depends'])) {
                 if (!is_array($fieldData['depends'])) {
                     throw new InvalidConfigException("The 'depends' parameter for field '{$fieldId}' must be an array.");
                 }
-
-                if (count($fieldData['depends']) !== 1) {
-                    throw new InvalidConfigException("Field '{$fieldId}' can only depend on exactly one parent field condition.");
+                if ($fieldData['depends'] === []) {
+                    throw new InvalidConfigException("The 'depends' array for field '{$fieldId}' cannot be empty.");
                 }
 
-                $parentFieldId = (string)key($fieldData['depends']);
-                $expectedValue = current($fieldData['depends']);
+                $cleanDepends = [];
+                foreach ($fieldData['depends'] as $parentFieldId => $expectedValue) {
+                    $parentFieldId = (string)$parentFieldId;
 
-                if (!array_key_exists($parentFieldId, $cleanFields)) {
-                    throw new InvalidConfigException(
-                        "Field '{$fieldId}' depends on an undefined parent field '{$parentFieldId}' within the same group.",
-                    );
+                    if (!array_key_exists($parentFieldId, $cleanFields)) {
+                        throw new InvalidConfigException(
+                            "Field '{$fieldId}' depends on an undefined parent field '{$parentFieldId}' within the same group.",
+                        );
+                    }
+                    if (!is_scalar($expectedValue)) {
+                        throw new InvalidConfigException("The dependency target value for field '{$fieldId}' must be a strict scalar value.");
+                    }
+
+                    $cleanDepends[$parentFieldId] = $expectedValue;
                 }
 
-                if (!is_scalar($expectedValue)) {
-                    throw new InvalidConfigException("The dependency target value for field '{$fieldId}' must be a strict scalar value.");
-                }
-
-                $cleanFields[$fieldId]['depends'] = [
-                    $parentFieldId => $expectedValue,
-                ];
+                $cleanFields[$fieldId]['depends'] = $cleanDepends;
             } else {
                 $cleanFields[$fieldId]['depends'] = null;
             }

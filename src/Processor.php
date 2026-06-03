@@ -1,4 +1,11 @@
 <?php
+/**
+ * Modestox Config Processor
+ *
+ * @copyright Copyright (c) 2026 Sergey Kuzmitsky
+ * @license   MIT
+ * @link      https://github.com/Modestox/config-processor
+ */
 
 declare(strict_types=1);
 
@@ -14,15 +21,6 @@ use Modestox\ConfigProcessor\Schema\SchemaInterface;
  */
 class Processor
 {
-    /**
-     * Processor constructor.
-     * Uses PHP 8.0 Constructor Property Promotion to inject sub-validators.
-     */
-    public function __construct(
-    ) {
-        InvalidConfigException::register();
-    }
-
     /**
      * Processes any dirty configuration array based on the provided validation schema.
      *
