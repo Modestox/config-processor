@@ -1,5 +1,6 @@
 /vendor/
 /public/
+/examples/
 /.idea/
 /.osp/
 /.phpunit.result.cache
