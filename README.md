@@ -1,6 +1,6 @@
 # Configuration Processor Component
 
-![Tests](https://github.com/Modestox/config-processor/actions/workflows/phpunit.yml/badge.svg)
+![Tests](https://github.com/Modestox/config-processor/actions/workflows/ci.yml/badge.svg)
 
 A standalone PHP component designed for multi-level validation, sanitization, normalization, and sorting of hierarchical system configurations (e.g., application module settings, payment gateways, theme configurations, or plugins).
 
