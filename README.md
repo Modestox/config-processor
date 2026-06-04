@@ -1,5 +1,7 @@
 # Configuration Processor Component
 
+![Tests](https://github.com/Modestox/config-processor/actions/workflows/phpunit.yml/badge.svg)
+
 A standalone PHP component designed for multi-level validation, sanitization, normalization, and sorting of hierarchical system configurations (e.g., application module settings, payment gateways, theme configurations, or plugins).
 
 The architecture is built on a declarative principle of multi-level data grouping: `Tabs -> Sections -> Groups -> Fields`.
