@@ -3,5 +3,5 @@
 /examples/
 /.idea/
 /.osp/
-/.phpunit.result.cache
-/composer.lock
+.phpunit.result.cache
+composer.lock
