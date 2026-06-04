@@ -29,6 +29,7 @@ use Modestox\ConfigProcessor\Validator\SystemConfig\Fields\Password;
 use Modestox\ConfigProcessor\Validator\SystemConfig\Fields\DynamicRows;
 use Modestox\ConfigProcessor\Validator\SystemConfig\Fields\File;
 use Modestox\ConfigProcessor\Validator\SystemConfig\Fields\Image;
+use Modestox\ConfigProcessor\Validator\SystemConfig\Fields\InfoBlock;
 
 class Fields implements ValidatorInterface
 {
@@ -57,6 +58,7 @@ class Fields implements ValidatorInterface
             'dynamic_rows' => new DynamicRows(),
             'file'         => new File(),
             'image'        => new Image(),
+            'infoblock'    => new InfoBlock(),
         ];
 
         foreach ($validators as $type => $validator) {

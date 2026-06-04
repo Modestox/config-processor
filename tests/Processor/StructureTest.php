@@ -116,43 +116,43 @@ class StructureTest extends TestCase
     /**
      * Data provider containing matrices of deformed configuration structural setups.
      *
-     * @return array<string, array{dirtyInput: array<string, mixed>, expectedMessage: string}>
+     * @return array<string, array{rawInput: array<string, mixed>, expectedMessage: string}>
      */
     public function structuralInvalidConfigProvider(): array
     {
         return [
             'tabs_parameter_root_is_not_an_array' => [
-                'dirtyInput'      => ['tabs' => 'string-payload'],
+                'rawInput'        => ['tabs' => 'string-payload'],
                 'expectedMessage' => "The 'tabs' section must be an array.",
             ],
             'tab_sort_order_contains_invalid_string_type' => [
-                'dirtyInput'      => ['tabs' => ['system_tab' => ['sort_order' => '10']]],
+                'rawInput'        => ['tabs' => ['system_tab' => ['sort_order' => '10']]],
                 'expectedMessage' => "Field 'sort_order' for tab 'system_tab' must be a strict integer.",
             ],
             'tab_label_contains_invalid_non_string_type' => [
-                'dirtyInput'      => ['tabs' => ['system_tab' => ['label' => 404]]],
+                'rawInput'        => ['tabs' => ['system_tab' => ['label' => 404]]],
                 'expectedMessage' => "Field 'label' for tab 'system_tab' must be a strict string.",
             ],
             'sections_parameter_root_is_not_an_array' => [
-                'dirtyInput'      => ['tabs' => ['main_tab' => []], 'sections' => 'malformed-string'],
+                'rawInput'        => ['tabs' => ['main_tab' => []], 'sections' => 'malformed-string'],
                 'expectedMessage' => "The 'sections' section must be an array.",
             ],
             'section_missing_mandatory_parent_tab_assignment' => [
-                'dirtyInput'      => [
+                'rawInput'        => [
                     'tabs'     => ['main_tab' => []],
                     'sections' => ['payment_settings' => ['label' => 'Payments']],
                 ],
                 'expectedMessage' => "Section 'payment_settings' is missing its mandatory 'tab' assignment parameter.",
             ],
             'section_references_an_undefined_parent_tab' => [
-                'dirtyInput'      => [
+                'rawInput'        => [
                     'tabs'     => ['main_tab' => []],
                     'sections' => ['payment_settings' => ['tab' => 'non_existent_tab']],
                 ],
                 'expectedMessage' => "Section 'payment_settings' references an undefined parent tab 'non_existent_tab'.",
             ],
             'group_sort_order_contains_invalid_type' => [
-                'dirtyInput'      => [
+                'rawInput'        => [
                     'tabs'     => ['main_tab' => []],
                     'sections' => [
                         'payment_settings' => [

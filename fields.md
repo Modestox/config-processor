@@ -8,7 +8,7 @@ Every configuration field in the system, regardless of its specific type (`type`
 * `class` *(string, optional)* — Additional CSS class for input UI customization. Automatically trimmed. Defaults to `""`.
 * `validation` *(array, optional)* — An array of validation rule strings. Each rule is automatically stripped of whitespaces. Defaults to `[]`.
 * `required` *(bool, optional)* — Defines whether filling the field is mandatory. Defaults to `false`.
-* `depends` *(array, optional)* — Conditional visibility constraints. A field can depend on one or more parent fields within the same group (Enterprise logic). Passed as an associative array mapping parent field keys to expected scalar values (e.g., `['enable_api' => 1, 'api_mode' => 'live']`). Defaults to `null`.
+* `depends` *(array, optional)* — Conditional visibility constraints. A field can depend on one or more parent fields within the same group. Passed as an associative array mapping parent field keys to expected scalar values (e.g., `['enable_api' => 1, 'api_mode' => 'live']`). Defaults to `null`.
 
 ---
 
@@ -100,3 +100,12 @@ User interface controls allowing a concurrent selection of several option keys. 
 * **Validation Rules:**
   * The `options` parameter is strict and cannot be empty.
   * The `default` property must be a strict array type. Each element within the array is validated to ensure it exists among the keys declared in `options`. If omitted, it returns an empty array `[]`.
+
+### 12. `infoblock` (Non-Data Placeholder)
+A specialized component used for rendering instructions, warnings, or inline notice blocks within configuration forms. It completely ignores data inputs.
+* **Type-Specific Properties:**
+  * `text` *(string, required)* — The message content. Surrounding whitespaces are automatically trimmed.
+  * `format` *(string, optional)* — Defines how the content should be interpreted by the consuming application. Accepts two options:
+    * `'text'` — Plain text format. The rendering frontend must escape the content (e.g., via `htmlspecialchars()`) to prevent XSS vulnerability risks. **Enforced as default if omitted.**
+    * `'html'` — Raw markup rendering allowed. Developers are responsible for ensuring safe markup implementation when embedding anchor tags (`<a>`), line breaks, or text emphasis.
+```

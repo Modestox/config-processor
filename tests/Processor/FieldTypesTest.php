@@ -143,6 +143,29 @@ class FieldTypesTest extends TestCase
     }
 
     /**
+     * Tests that infoblock UI elements are compiled and validated properly with text and html formats.
+     *
+     * @return void
+     */
+    public function testInfoblockFieldNormalizesUiAttributesSuccessfully(): void
+    {
+        $payload = $this->wrapField([
+            'type'   => 'infoblock',
+            'text'   => '   System maintenance notification text.   ',
+            'format' => 'html',
+            'class'  => 'custom-alert-class'
+        ]);
+
+        $clean = $this->processor->process($payload, $this->schema);
+        $field = $clean['sections']['main_section']['groups']['main_group']['fields']['target_field'];
+
+        $this->assertSame('System maintenance notification text.', $field['text']);
+        $this->assertSame('html', $field['format']);
+        $this->assertSame('custom-alert-class', $field['class']);
+        $this->assertNull($field['depends']);
+    }
+
+    /**
      * Parameterized test intercepting specific data structure or field type rule violations.
      *
      * @dataProvider invalidFieldTypesProvider

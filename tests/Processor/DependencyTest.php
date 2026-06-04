@@ -151,7 +151,7 @@ class DependencyTest extends TestCase
     /**
      * Data provider containing matrices of deformed dependency parameters.
      *
-     * @return array<string, array{dirtyInput: array<string, mixed>, expectedMessage: string}>
+     * @return array<string, array{rawInput: array<string, mixed>, expectedMessage: string}>
      */
     public function invalidDependencyProvider(): array
     {
@@ -171,7 +171,7 @@ class DependencyTest extends TestCase
 
         return [
             'depends_parameter_is_not_an_array' => [
-                'dirtyInput' => array_replace_recursive($baseSkeleton, [
+                'rawInput' => array_replace_recursive($baseSkeleton, [
                     'sections' => ['api_settings' => ['groups' => ['auth_group' => ['fields' => [
                         'api_token' => ['type' => 'text', 'depends' => 'enable_api:1']
                     ]]]]]
@@ -179,7 +179,7 @@ class DependencyTest extends TestCase
                 'expectedMessage' => "The 'depends' parameter for field 'api_token' must be an array.",
             ],
             'depends_array_is_provided_but_empty' => [
-                'dirtyInput' => array_replace_recursive($baseSkeleton, [
+                'rawInput' => array_replace_recursive($baseSkeleton, [
                     'sections' => ['api_settings' => ['groups' => ['auth_group' => ['fields' => [
                         'enable_api' => ['type' => 'yes_no'],
                         'api_token'  => ['type' => 'text', 'depends' => []]
@@ -188,7 +188,7 @@ class DependencyTest extends TestCase
                 'expectedMessage' => "The 'depends' array for field 'api_token' cannot be empty.",
             ],
             'depends_references_undefined_field_within_the_group' => [
-                'dirtyInput' => array_replace_recursive($baseSkeleton, [
+                'rawInput' => array_replace_recursive($baseSkeleton, [
                     'sections' => ['api_settings' => ['groups' => ['auth_group' => ['fields' => [
                         'api_token' => ['type' => 'text', 'depends' => ['missing_field_id' => 1]]
                     ]]]]]
@@ -196,7 +196,7 @@ class DependencyTest extends TestCase
                 'expectedMessage' => "Field 'api_token' depends on an undefined parent field 'missing_field_id' within the same group.",
             ],
             'depends_target_value_is_not_a_valid_scalar' => [
-                'dirtyInput' => array_replace_recursive($baseSkeleton, [
+                'rawInput' => array_replace_recursive($baseSkeleton, [
                     'sections' => ['api_settings' => ['groups' => ['auth_group' => ['fields' => [
                         'enable_api' => ['type' => 'yes_no'],
                         'api_token'  => ['type' => 'text', 'depends' => ['enable_api' => [1, 2]]]

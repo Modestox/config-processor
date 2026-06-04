@@ -1,0 +1,48 @@
+name: Code Quality & Automated Testing
+
+on:
+  push:
+    branches: [ master, main ]
+
+  pull_request:
+    branches: [ master, main ]
+
+permissions:
+  contents: read
+
+jobs:
+  phpunit-tests:
+    name: PHPUnit (PHP 8.3 on Ubuntu)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP Environment
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, xml, ctype, json
+          coverage: none
+          tools: composer:v2
+
+      - name: Cache Composer Dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.composer/cache/files
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.json') }}
+          restore-keys: |
+            ${{ runner.os }}-composer-
+
+      - name: Validate Composer Configuration
+        run: composer validate --strict
+
+      - name: Install Dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist
+
+      - name: Check Platform Requirements
+        run: composer check-platform-reqs
+
+      - name: Run PHPUnit Test Suite
+        run: vendor/bin/phpunit

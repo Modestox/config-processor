@@ -2,20 +2,54 @@
 
 A standalone PHP component designed for multi-level validation, sanitization, normalization, and sorting of hierarchical system configurations (e.g., application module settings, payment gateways, theme configurations, or plugins).
 
-The architecture is built on a flexible, declarative principle of multi-level data grouping: `Tabs -> Sections -> Groups -> Fields`.
+The architecture is built on a declarative principle of multi-level data grouping: `Tabs -> Sections -> Groups -> Fields`.
 
-Strictly implemented according to the **PHP 8.3+** standard, fully compatible with DI containers, and supports dynamic extensibility with custom field types.
+---
+
+## Features
+
+- **PHP 8.3+** — Implemented strictly according to the modern language standards.
+- **Strict typing** — Native type safety enforced across all validators and configuration nodes.
+- **Deep validation** — Comprehensive evaluation of structural constraints, value boundaries, and formats.
+- **Recursive normalization** — Automated sanitization and fallback backfilling at every level of the tree.
+- **Automatic sorting** — Enforces execution and rendering order using the `sort_order` attribute.
+- **Dependency-aware fields** — Supports conditional visibility constraints between fields inside the same group.
+- **Dynamic field registry** — Allows runtime registration or overriding of custom field type strategies.
+- **Non-destructive processing** — The input configuration array is never modified or passed by reference.
+- **DI-container friendly** — Built with low-coupling architecture ready for dependency injection environments.
+
+---
+
+### Configuration Tree Example
+
+This structural hierarchy allows you to map complex nested data models seamlessly:
+
+```text
+Tabs
+├── General (Section)
+│   ├── API Settings (Group)
+│   │   ├── Authentication (Sub-context)
+│   │   │   ├── enable_api (Field)
+│   │   │   └── api_secret (Field)
+│   │   └── Cache (Group)
+│   └── Security (Group)
+│
+└── Payments (Section)
+    └── Stripe (Group)
+```
 
 ---
 
 ## Quick Start
 
 ### 1. Installation
+
 ```bash
 composer require modestox/config-processor
 ```
 
 ### 2. Raw Configuration Example
+
 The component accepts a raw multi-dimensional array compiled from module configuration files. Note the redundant whitespaces in string values and the unsorted `sort_order` properties:
 
 ```php
@@ -58,6 +92,7 @@ $rawInput = [
 ```
 
 ### 3. Processing Configuration
+
 Pass the input data array and the validation schema instance to the orchestrator:
 
 ```php
@@ -72,6 +107,7 @@ $cleanConfig = $processor->process($rawInput, $schema);
 ```
 
 ### 4. Output of the `process()` Method
+
 The method returns a **sanitized associative array (`array`)**, where string parameters are normalized, missing properties are populated with system defaults, and elements across all levels are strictly sorted by their `sort_order` values:
 
 ```php
@@ -140,6 +176,7 @@ The method returns a **sanitized associative array (`array`)**, where string par
 When an invalid structure is detected or field type rules are violated, the processor throws a domain-specific `InvalidConfigException`.
 
 **Example of an invalid field configuration:**
+
 ```php
 'cache_timeout' => [
     'type' => 'number',
@@ -149,6 +186,7 @@ When an invalid structure is detected or field type rules are violated, the proc
 ```
 
 **Execution Result:**
+
 ```text
 Modestox\ConfigProcessor\Exception\InvalidConfigException:
 Field 'max' cannot be less than 'min' for number field 'cache_timeout'.
@@ -158,20 +196,23 @@ Field 'max' cannot be less than 'min' for number field 'cache_timeout'.
 
 ## Supported Field Types Summary
 
-| Field Type (`type`) | Type-Specific Properties | Default Behavior & Fallbacks |
-| :--- | :--- | :--- |
-| **`text`** / **`textarea`** | `default` *(string)*, `placeholder` *(string)* | String fields. All values are automatically sanitized using `trim()`. |
-| **`password`** | `default` *(string)* | Masked input field for sensitive data. Default value is trimmed. |
-| **`boolean`** | `default` *(bool)* | Logical toggle. Coerces the provided default to a strict `true`/`false`. |
-| **`yes_no`** | `default` *(int)* | Yes/No dropdown selection. Automatically injects `options => [0 => 'No', 1 => 'Yes']`. |
-| **`number`** | `default`, `min`, `max` *(int/float)* | Numeric field. Enforces strict types and logical boundaries (`max >= min`). |
-| **`datetime`** | `view_mode` *(string)*, `default` *(string)* | Validates whether the given string matches `Y-m-d`, `Y-m-d H:i:s`, or `H:i:s` formats. |
-| **`dynamic_rows`**| `columns` *(array)*, `default` *(array)* | Two-dimensional table matrix. The structure definition array (`columns`) is required. |
-| **`file`** / **`image`** | `upload_dir` *(string)*, `extensions` *(string)* | Declarative rules. Trims path strings. Returns empty strings `''` by default. |
-| **`select`** / **`radio`** | `options` *(array)*, `default` *(string/int)* | Single choice from a mandatory, non-empty `options` associative array. |
-| **`multiselect`** / **`checkbox`**| `options` *(array)*, `default` *(array)* | Multiple choice. The default value must be a strict array of existing keys. |
+The component natively supports a wide range of standard data types and UI hints:
 
-> **Full Property Documentation:** A comprehensive breakdown of each field type, its constraints, inheritance, and validation rules has been moved to a separate reference file: [Detailed Field Specifications](fields.md).
+| Field Type (`type`) | Behavior & Fallbacks |
+| :--- | :--- |
+| **`text`** / **`textarea`** | Standard text data. All values are automatically sanitized using `trim()`. |
+| **`password`** | Masked input field for sensitive credentials. Values are automatically trimmed. |
+| **`boolean`** | Enforces strict boolean (`true`/`false`) conversion and fallback values. |
+| **`yes_no`** | Fast binary dropdown. Automatically injects strict options: `[0 => 'No', 1 => 'Yes']`. |
+| **`number`** | Enforces strict numeric types (int/float) and logical validation boundaries (`max >= min`). |
+| **`datetime`** | Strictly validates temporal values against ISO standards (`date`, `time`, or `datetime`). |
+| **`dynamic_rows`** | Two-dimensional table matrix. Automatically normalizes and backfills nested cell structures. |
+| **`file`** / **`image`** | Declarative mapping for paths and extensions handled by the application runtime. |
+| **`select`** / **`radio`** | Single choice options picker. Strictly validates default keys against predefined scope. |
+| **`multiselect`** / **`checkbox`**| Multiple choice options picker. Enforces default data to be an array of valid keys. |
+| **`infoblock`** | Non-data text placeholder. Defines how the content should be interpreted by the consuming application. |
+
+> **Full Property Documentation:** A comprehensive breakdown of each field type, its constraints, inheritance, and validation rules can be found in the separate reference file: [Detailed Field Specifications](fields.md).
 
 ---
 
@@ -186,5 +227,3 @@ $fieldsValidator = new Fields();
 // Register a custom validation strategy for a new 'colorpicker' type
 $fieldsValidator->registerType('colorpicker', new MyCustomColorPickerValidator());
 ```
-
----

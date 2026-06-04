@@ -3,7 +3,9 @@
     "description": "Native PHP configuration processor",
     "authors": [
         {
-            "name": "Sergey Kuzmitsky"
+            "name": "Sergey Kuzmitsky",
+            "email": "ubuntu.ksm@gmail.com",
+            "homepage": "https://github.com/modestox"
         }
     ],
     "type": "library",
