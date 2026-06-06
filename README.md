@@ -14,7 +14,7 @@ The architecture is built on a declarative principle of multi-level data groupin
 - **Strict typing** — Native type safety enforced across all validators and configuration nodes.
 - **Deep validation** — Comprehensive evaluation of structural constraints, value boundaries, and formats.
 - **Recursive normalization** — Automated sanitization and fallback backfilling at every level of the tree.
-- **Automatic sorting** — Enforces execution and rendering order using the `sort_order` attribute.
+- **Automatic sorting** — Automatically sorts configuration nodes by `sort_order`.
 - **Dependency-aware fields** — Supports conditional visibility constraints between fields inside the same group.
 - **Dynamic field registry** — Allows runtime registration or overriding of custom field type strategies.
 - **Non-destructive processing** — The input configuration array is never modified or passed by reference.
@@ -22,25 +22,59 @@ The architecture is built on a declarative principle of multi-level data groupin
 
 ---
 
-### Configuration Tree Example
+## Why?
 
-This structural hierarchy allows you to map complex nested data models seamlessly:
+Most configuration systems mix validation, storage and, UI rendering into a single layer.
+
+Configuration Processor focuses exclusively on configuration structure validation, normalization and consistency, allowing adapters and applications to handle rendering and persistence independently.
+
+---
+
+## Supported Schemas
+
+The processor supports multiple configuration layouts depending on the application requirements.
+
+### System Configuration
+
+Full hierarchical configuration structure:
 
 ```text
 Tabs
-├── General (Section)
-│   ├── API Settings (Group)
-│   │   ├── Authentication (Sub-context)
-│   │   │   ├── enable_api (Field)
-│   │   │   └── api_secret (Field)
-│   │   └── Cache (Group)
-│   └── Security (Group)
-│
-└── Payments (Section)
-    └── Stripe (Group)
+└── Sections
+    └── Groups
+        └── Fields
 ```
 
+Designed for large applications, CMS platforms, administration panels, and modular systems.
+
+### Grouped Configuration
+
+Lightweight standalone configuration structure:
+
+```text
+Groups
+└── Fields
+```
+
+Designed for isolated plugins, widgets, reusable packages, and small modules that do not require tabs or sections.
+
 ---
+
+
+### Configuration Tree Example
+
+Example of a typical hierarchical configuration structure:
+
+```text
+Tabs
+└── General (Tab)
+    └── API Integration (Section)
+        ├── Authentication (Group)
+        │   ├── enable_api (Field)
+        │   └── api_secret (Field)
+        │
+        └── Security (Group)
+```
 
 ## Quick Start
 
@@ -104,6 +138,9 @@ use Modestox\ConfigProcessor\Schema\SystemConfig;
 $processor = new Processor();
 $schema = new SystemConfig();
 
+// OR for isolated plugin structures:
+// $schema = new \Modestox\ConfigProcessor\Schema\GroupedConfig();
+
 /** @var array $cleanConfig */
 $cleanConfig = $processor->process($rawInput, $schema);
 ```
@@ -158,7 +195,7 @@ The method returns a **sanitized associative array (`array`)**, where string par
                             'sort_order' => 0,
                             'default'    => 'secret-token-key', // Trimmed
                             'comment'    => '',
-                            'class'       => '',
+                            'class'      => '',
                             'validation' => [],
                             'required'   => false,
                             'depends'    => ['enable_api' => 1]
@@ -196,6 +233,21 @@ Field 'max' cannot be less than 'min' for number field 'cache_timeout'.
 
 ---
 
+## Typical Use Cases
+
+The component is framework-agnostic and can serve as the configuration foundation for:
+
+- CMS settings systems
+- WordPress plugins and themes
+- Laravel administration panels
+- Modular applications
+- Payment gateway configuration
+- Feature flag management
+- Internal developer tools
+- Dynamic settings generators
+
+---
+
 ## Supported Field Types Summary
 
 The component natively supports a wide range of standard data types and UI hints:
@@ -215,6 +267,23 @@ The component natively supports a wide range of standard data types and UI hints
 | **`infoblock`** | Non-data text placeholder. Defines how the content should be interpreted by the consuming application. |
 
 > **Full Property Documentation:** A comprehensive breakdown of each field type, its constraints, inheritance, and validation rules can be found in the separate reference file: [Detailed Field Specifications](fields.md).
+
+---
+
+## Architecture Philosophy
+
+Configuration Processor intentionally focuses only on:
+
+- Validation
+- Normalization
+- Sanitization
+- Structural consistency
+
+The component does not render user interfaces and does not persist user data.
+
+UI rendering, storage layers, and framework integrations should be implemented by adapters built on top of the normalized configuration output.
+
+This separation keeps the core library framework-agnostic, portable, predictable, and easy to integrate into different ecosystems.
 
 ---
 
