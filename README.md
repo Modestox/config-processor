@@ -6,6 +6,12 @@ A standalone PHP component designed for multi-level validation, sanitization, no
 
 The architecture is built on a declarative principle of multi-level data grouping: `Tabs -> Sections -> Groups -> Fields`.
 
+## Installation
+
+```bash
+composer require modestox/config-processor
+```
+
 ---
 
 ## Features
