@@ -1,6 +1,7 @@
 {
     "name": "modestox/config-processor",
-    "description": "Native PHP configuration processor",
+    "description": "Configuration schema validation and processing library for PHP",
+    "homepage": "https://github.com/Modestox/config-processor",
     "authors": [
         {
             "name": "Sergey Kuzmitsky",
@@ -28,5 +29,13 @@
     },
     "scripts": {
         "test": "phpunit"
-    }
+    },
+    "keywords": [
+        "config",
+        "configuration",
+        "validator",
+        "schema",
+        "settings",
+        "php"
+    ]
 }
