@@ -9,6 +9,7 @@ Every configuration field in the system, regardless of its specific type (`type`
 * `validation` *(array, optional)* — An array of validation rule strings. Each rule is automatically stripped of whitespaces. Defaults to `[]`.
 * `required` *(bool, optional)* — Defines whether filling the field is mandatory. Defaults to `false`.
 * `depends` *(array, optional)* — Conditional visibility constraints. A field can depend on one or more parent fields within the same group. Passed as an associative array mapping parent field keys to expected scalar values (e.g., `['enable_api' => 1, 'api_mode' => 'live']`). Defaults to `null`.
+* `provider` *(string, optional)* — FQCN (Fully Qualified Class Name) of the dynamic data supplier. Used to fetch dynamic options matrices at runtime. Defaults to `""`.
 
 ---
 

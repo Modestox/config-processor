@@ -27,6 +27,10 @@ class Tabs implements ValidatorInterface
                 throw new InvalidConfigException("The tab identifier key must be a valid string.");
             }
 
+            if (!preg_match('/^[a-z0-9_]+$/', $tabId)) {
+                throw new InvalidConfigException("The tab identifier key '{$tabId}' contains invalid characters. Only lower-case alphanumeric characters and underscores are allowed (a-z, 0-9, _).");
+            }
+
             if (!is_array($tabData)) {
                 throw new InvalidConfigException("Configuration for tab '{$tabId}' must be an array.");
             }

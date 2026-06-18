@@ -87,9 +87,15 @@ class Fields implements ValidatorInterface
             if (!is_string($fieldId)) {
                 throw new InvalidConfigException("The field identifier key must be a valid string.");
             }
+
+            if (!preg_match('/^[a-z0-9_]+$/', $fieldId)) {
+                throw new InvalidConfigException("The field identifier key '{$fieldId}' contains invalid characters. Only lower-case alphanumeric characters and underscores are allowed (a-z, 0-9, _).");
+            }
+
             if (!is_array($fieldData)) {
                 throw new InvalidConfigException("Configuration for field '{$fieldId}' must be an array.");
             }
+
             if (!isset($fieldData['type']) || !is_string($fieldData['type'])) {
                 throw new InvalidConfigException("Field '{$fieldId}' must have a valid 'type' string parameter.");
             }

@@ -44,6 +44,10 @@ class Sections implements ValidatorInterface
                 throw new InvalidConfigException("The section identifier key must be a valid string.");
             }
 
+            if (!preg_match('/^[a-z0-9_]+$/', $sectionId)) {
+                throw new InvalidConfigException("The section identifier key '{$sectionId}' contains invalid characters. Only lower-case alphanumeric characters and underscores are allowed (a-z, 0-9, _).");
+            }
+
             if (!is_array($sectionData)) {
                 throw new InvalidConfigException("Configuration for section '{$sectionId}' must be an array.");
             }

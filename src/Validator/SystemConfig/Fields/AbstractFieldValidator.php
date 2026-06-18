@@ -30,6 +30,7 @@ abstract class AbstractFieldValidator implements FieldValidatorInterface
             'class'      => $this->validateString($fieldData, 'class', $fieldId, ''),
             'validation' => $this->validateArray($fieldData, 'validation', $fieldId, []),
             'required'   => $this->validateBool($fieldData, 'required', $fieldId, false),
+            'provider'   => $this->validateString($fieldData, 'provider', $fieldId, ''),
         ];
     }
 

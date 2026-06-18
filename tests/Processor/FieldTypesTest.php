@@ -14,6 +14,7 @@ namespace Modestox\ConfigProcessor\Tests\Processor;
 use PHPUnit\Framework\TestCase;
 use Modestox\ConfigProcessor\Processor;
 use Modestox\ConfigProcessor\Schema\SystemConfig;
+use Modestox\ConfigProcessor\Schema\GroupedConfig;
 use Modestox\ConfigProcessor\Exception\InvalidConfigException;
 
 /**
@@ -47,19 +48,19 @@ class FieldTypesTest extends TestCase
     private function wrapField(array $fieldData): array
     {
         return [
-            'tabs' => ['main_tab' => []],
+            'tabs'     => ['main_tab' => []],
             'sections' => [
                 'main_section' => [
-                    'tab' => 'main_tab',
+                    'tab'    => 'main_tab',
                     'groups' => [
                         'main_group' => [
                             'fields' => [
-                                'target_field' => $fieldData
-                            ]
-                        ]
-                    ]
-                ]
-            ]
+                                'target_field' => $fieldData,
+                            ],
+                        ],
+                    ],
+                ],
+            ],
         ];
     }
 
@@ -75,7 +76,7 @@ class FieldTypesTest extends TestCase
             'placeholder' => '   Spaced Placeholder   ',
             'comment'     => '   Spaced Comment   ',
             'upload_dir'  => '   assets/uploads   ', // For testing file inheritance behavior
-            'extensions'  => '   png,jpg   '
+            'extensions'  => '   png,jpg   ',
         ]);
 
         $clean = $this->processor->process($payload, $this->schema);
@@ -111,7 +112,7 @@ class FieldTypesTest extends TestCase
         $payload = $this->wrapField([
             'type'      => 'datetime',
             'view_mode' => 'datetime',
-            'default'   => '   2026-11-25 00:00:00   '
+            'default'   => '   2026-11-25 00:00:00   ',
         ]);
 
         $clean = $this->processor->process($payload, $this->schema);
@@ -132,8 +133,8 @@ class FieldTypesTest extends TestCase
             'type'    => 'dynamic_rows',
             'columns' => ['weight' => 'Weight', 'price' => 'Price'],
             'default' => [
-                ['weight' => '  5  ', 'price' => ' 10.50 ']
-            ]
+                ['weight' => '  5  ', 'price' => ' 10.50 '],
+            ],
         ]);
 
         $clean = $this->processor->process($payload, $this->schema);
@@ -153,7 +154,7 @@ class FieldTypesTest extends TestCase
             'type'   => 'infoblock',
             'text'   => '   System maintenance notification text.   ',
             'format' => 'html',
-            'class'  => 'custom-alert-class'
+            'class'  => 'custom-alert-class',
         ]);
 
         $clean = $this->processor->process($payload, $this->schema);
@@ -191,23 +192,23 @@ class FieldTypesTest extends TestCase
     public function invalidFieldTypesProvider(): array
     {
         return [
-            'unsupported_field_type_provided' => [
+            'unsupported_field_type_provided'                       => [
                 'fieldData'       => ['type' => 'unknown_type'],
                 'expectedMessage' => "Unsupported type 'unknown_type' in field 'target_field'.",
             ],
-            'number_min_restriction_contains_invalid_string' => [
+            'number_min_restriction_contains_invalid_string'        => [
                 'fieldData'       => ['type' => 'number', 'min' => 'ten'],
                 'expectedMessage' => "Field 'min' for number field 'target_field' must be a strict integer or float.",
             ],
-            'number_max_boundary_is_less_than_min_parameter' => [
+            'number_max_boundary_is_less_than_min_parameter'        => [
                 'fieldData'       => ['type' => 'number', 'min' => 20, 'max' => 10],
                 'expectedMessage' => "Field 'max' cannot be less than 'min' for number field 'target_field'.",
             ],
-            'number_default_is_less_than_min_boundary' => [
+            'number_default_is_less_than_min_boundary'              => [
                 'fieldData'       => ['type' => 'number', 'min' => 5, 'default' => 2],
                 'expectedMessage' => "Default value for number field 'target_field' cannot be less than defined 'min' restriction.",
             ],
-            'datetime_contains_invalid_calendar_day_string' => [
+            'datetime_contains_invalid_calendar_day_string'         => [
                 'fieldData'       => ['type' => 'datetime', 'view_mode' => 'date', 'default' => '2026-02-31'],
                 'expectedMessage' => "Default value '2026-02-31' for field 'target_field' does not match mandatory 'date' format standard ('Y-m-d').",
             ],
@@ -215,14 +216,39 @@ class FieldTypesTest extends TestCase
                 'fieldData'       => ['type' => 'dynamic_rows'],
                 'expectedMessage' => "Field 'columns' for dynamic rows field 'target_field' must be a defined configuration array.",
             ],
-            'select_contains_empty_options_array' => [
+            'select_contains_empty_options_array'                   => [
                 'fieldData'       => ['type' => 'select', 'options' => []],
                 'expectedMessage' => "Field 'target_field' of type 'select' must contain a non-empty array of 'options'.",
             ],
-            'select_default_value_does_not_exist_in_options' => [
+            'select_default_value_does_not_exist_in_options'        => [
                 'fieldData'       => ['type' => 'select', 'options' => ['a' => 'Option A'], 'default' => 'b'],
                 'expectedMessage' => "The default value 'b' for field 'target_field' does not exist within the permitted options scope.",
             ],
         ];
+    }
+
+    /**
+     * Verifies that the 'provider' property is correctly validated and normalized.
+     */
+    public function testFieldProviderPropertyNormalization(): void
+    {
+        $input = [
+            'groups' => [
+                'general_group' => [
+                    'fields' => [
+                        'country_list' => [
+                            'type'     => 'select',
+                            'options'  => [1 => 'Temporary'],
+                            'provider' => '  Modestox\Core\Provider\CountryProvider  ',
+                        ],
+                    ],
+                ],
+            ],
+        ];
+
+        $clean = $this->processor->process($input, new GroupedConfig());
+        $field = $clean['groups']['general_group']['fields']['country_list'];
+
+        $this->assertEquals('Modestox\Core\Provider\CountryProvider', $field['provider']);
     }
 }
