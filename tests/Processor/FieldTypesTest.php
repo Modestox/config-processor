@@ -20,31 +20,21 @@ use Modestox\ConfigProcessor\Exception\InvalidConfigException;
 /**
  * Class FieldTypesTest
  *
- * Automated isolated strategies tests for verifying data sanitization,
- * types boundaries, default fallbacks, and specific configuration field parameters.
+ * Tests field type validators.
  */
 class FieldTypesTest extends TestCase
 {
     private Processor $processor;
     private SystemConfig $schema;
 
-    /**
-     * Set up the field type verification runtime environment.
-     *
-     * @return void
-     */
+    /** Prepares fixtures. */
     protected function setUp(): void
     {
         $this->processor = new Processor();
         $this->schema = new SystemConfig();
     }
 
-    /**
-     * Helper template to structure minimal nested valid layout boilerplate payload.
-     *
-     * @param array<string, mixed> $fieldData
-     * @return array<string, mixed>
-     */
+    /** Wraps a field into a minimal schema. */
     private function wrapField(array $fieldData): array
     {
         return [
@@ -64,11 +54,7 @@ class FieldTypesTest extends TestCase
         ];
     }
 
-    /**
-     * Tests that scalar input fields cleanly apply automatic trimming modifiers.
-     *
-     * @return void
-     */
+    /** Text and files apply automatic trimming successfully. */
     public function testTextAndFilesApplyAutomaticTrimmingSuccessfully(): void
     {
         $payload = $this->wrapField([
@@ -86,11 +72,7 @@ class FieldTypesTest extends TestCase
         $this->assertSame('Spaced Comment', $field['comment']);
     }
 
-    /**
-     * Tests that the yes_no component automatically populates standard binary options scope.
-     *
-     * @return void
-     */
+    /** Yes no field injects standard options matrix automatically. */
     public function testYesNoFieldInjectsStandardOptionsMatrixAutomatically(): void
     {
         $payload = $this->wrapField(['type' => 'yes_no']);
@@ -102,11 +84,7 @@ class FieldTypesTest extends TestCase
         $this->assertSame(0, $field['default']);
     }
 
-    /**
-     * Tests that datetime component accurately processes valid ISO calendars.
-     *
-     * @return void
-     */
+    /** Datetime field accepts valid iso formats. */
     public function testDatetimeFieldAcceptsValidIsoFormats(): void
     {
         $payload = $this->wrapField([
@@ -122,11 +100,7 @@ class FieldTypesTest extends TestCase
         $this->assertSame('2026-11-25 00:00:00', $field['default']);
     }
 
-    /**
-     * Tests that dynamic rows clean cells and preserve multi-dimensional matrix layout.
-     *
-     * @return void
-     */
+    /** Dynamic rows normalizes table matrix structures. */
     public function testDynamicRowsNormalizesTableMatrixStructures(): void
     {
         $payload = $this->wrapField([
@@ -143,11 +117,7 @@ class FieldTypesTest extends TestCase
         $this->assertSame(['weight' => '5', 'price' => '10.50'], $field['default'][0]);
     }
 
-    /**
-     * Tests that infoblock UI elements are compiled and validated properly with text and html formats.
-     *
-     * @return void
-     */
+    /** Infoblock field normalizes ui attributes successfully. */
     public function testInfoblockFieldNormalizesUiAttributesSuccessfully(): void
     {
         $payload = $this->wrapField([
@@ -167,12 +137,9 @@ class FieldTypesTest extends TestCase
     }
 
     /**
-     * Parameterized test intercepting specific data structure or field type rule violations.
+     * Process throws exception on field rule violations.
      *
      * @dataProvider invalidFieldTypesProvider
-     * @param array<string, mixed> $fieldData
-     * @param string $expectedMessage
-     * @return void
      */
     public function testProcessThrowsExceptionOnFieldRuleViolations(array $fieldData, string $expectedMessage): void
     {
@@ -184,11 +151,7 @@ class FieldTypesTest extends TestCase
         $this->processor->process($payload, $this->schema);
     }
 
-    /**
-     * Data provider distributing unique error states for distinct input strategies.
-     *
-     * @return array<string, array{fieldData: array<string, mixed>, expectedMessage: string}>
-     */
+    /** Invalid field types cases. */
     public function invalidFieldTypesProvider(): array
     {
         return [
@@ -227,9 +190,7 @@ class FieldTypesTest extends TestCase
         ];
     }
 
-    /**
-     * Verifies that the 'provider' property is correctly validated and normalized.
-     */
+    /** Field provider property normalization. */
     public function testFieldProviderPropertyNormalization(): void
     {
         $input = [

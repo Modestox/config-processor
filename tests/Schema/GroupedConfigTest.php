@@ -19,13 +19,11 @@ use Modestox\ConfigProcessor\Exception\InvalidConfigException;
 /**
  * Class GroupedConfigTest
  *
- * Covers lifecycle validation and exceptional flows for the GroupedConfig schema strategy.
+ * Tests the grouped schema.
  */
 class GroupedConfigTest extends TestCase
 {
-    /**
-     * Verify that GroupedConfig successfully delegates data processing to the internal Groups validator.
-     */
+    /** Validate processes valid groups structure successfully. */
     public function testValidateProcessesValidGroupsStructureSuccessfully(): void
     {
         // 1. Prepare isolated mocked dependencies to ensure pure unit test execution
@@ -62,9 +60,7 @@ class GroupedConfigTest extends TestCase
         $this->assertEquals($expectedCleanedData, $result['groups']);
     }
 
-    /**
-     * Verify that an exception is immediately thrown if the mandatory 'groups' root key is missing.
-     */
+    /** Validate throws exception when groups key is missing. */
     public function testValidateThrowsExceptionWhenGroupsKeyIsMissing(): void
     {
         $schema = new GroupedConfig();
@@ -76,9 +72,7 @@ class GroupedConfigTest extends TestCase
         $schema->validate($invalidInputPayload);
     }
 
-    /**
-     * Verify that an exception is thrown if the 'groups' configuration node is present but isn't an array.
-     */
+    /** Validate throws exception when groups key is not an array. */
     public function testValidateThrowsExceptionWhenGroupsKeyIsNotAnArray(): void
     {
         $schema = new GroupedConfig();

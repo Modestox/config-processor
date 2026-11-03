@@ -14,22 +14,17 @@ namespace Modestox\ConfigProcessor\Validator\SystemConfig\Fields;
 /**
  * Class Textarea
  *
- * Validates and normalizes attributes specific to the multi-line text input field type.
+ * Validates textarea fields.
  */
 class Textarea extends AbstractFieldValidator
 {
-    /**
-     * @inheritDoc
-     */
+    /** @inheritDoc */
     public function validate(string $fieldId, array $fieldData, array $baseMeta): array
     {
-        // Only validate parameters unique to the 'textarea' type
         $specific = [
             'default'     => $this->validateString($fieldData, 'default', $fieldId, ''),
             'placeholder' => $this->validateString($fieldData, 'placeholder', $fieldId, ''),
         ];
-
-        // Merge all layers: base metadata, unique attributes, and shared ones
         return array_merge($baseMeta, $specific, $this->validateCommon($fieldId, $fieldData));
     }
 }

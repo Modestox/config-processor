@@ -16,16 +16,13 @@ use Modestox\ConfigProcessor\Exception\InvalidConfigException;
 /**
  * Class Select
  *
- * Validates and structures configuration components for drop-down selection options.
+ * Validates select fields.
  */
 class Select extends AbstractFieldValidator
 {
-    /**
-     * @inheritDoc
-     */
+    /** @inheritDoc */
     public function validate(string $fieldId, array $fieldData, array $baseMeta): array
     {
-        // 1. Validate mandatory 'options' matrix
         if (!isset($fieldData['options']) || !is_array($fieldData['options']) || $fieldData['options'] === []) {
             throw new InvalidConfigException("Field '{$fieldId}' of type 'select' must contain a non-empty array of 'options'.");
         }
@@ -41,7 +38,6 @@ class Select extends AbstractFieldValidator
             $cleanOptions[$value] = trim($label);
         }
 
-        // 2. Validate 'default' reference integrity
         $default = array_key_first($cleanOptions);
         if (isset($fieldData['default'])) {
             if (!is_string($fieldData['default']) && !is_int($fieldData['default'])) {
@@ -55,8 +51,6 @@ class Select extends AbstractFieldValidator
             }
             $default = $fieldData['default'];
         }
-
-        // Merge base, specific options, and shared common fields (comment, class, validation, required)
         return array_merge($baseMeta, [
             'options' => $cleanOptions,
             'default' => $default,

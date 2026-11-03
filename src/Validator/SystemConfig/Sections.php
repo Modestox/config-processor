@@ -11,28 +11,31 @@ declare(strict_types=1);
 
 namespace Modestox\ConfigProcessor\Validator\SystemConfig;
 
-use Modestox\ConfigProcessor\Validator\ValidatorInterface;
 use Modestox\ConfigProcessor\Exception\InvalidConfigException;
+use Modestox\ConfigProcessor\Validator\Identifier;
+use Modestox\ConfigProcessor\Validator\ValidatorInterface;
 
 /**
  * Class Sections
  *
- * Validates layout groups and delegates field tree rendering deeper via cascading validation.
+ * Validates sections and delegates groups validation.
  */
 class Sections implements ValidatorInterface
 {
+    private readonly Groups $groupsValidator;
+
     /**
      * Sections constructor.
-     * Injects the intermediate Groups validator using DI patterns.
      */
-    public function __construct(
-        private ?Groups $groupsValidator = null
-    ) {
-        $this->groupsValidator = $this->groupsValidator ?? new Groups();
+    public function __construct(?Groups $groupsValidator = null)
+    {
+        $this->groupsValidator = $groupsValidator ?? new Groups();
     }
 
     /**
      * @inheritDoc
+     *
+     * Expects the list of known tab identifiers in $context['valid_tabs'].
      */
     public function validate(array $sections, array $context = []): array
     {
@@ -40,13 +43,7 @@ class Sections implements ValidatorInterface
         $validTabs = $context['valid_tabs'] ?? [];
 
         foreach ($sections as $sectionId => $sectionData) {
-            if (!is_string($sectionId)) {
-                throw new InvalidConfigException("The section identifier key must be a valid string.");
-            }
-
-            if (!preg_match('/^[a-z0-9_]+$/', $sectionId)) {
-                throw new InvalidConfigException("The section identifier key '{$sectionId}' contains invalid characters. Only lower-case alphanumeric characters and underscores are allowed (a-z, 0-9, _).");
-            }
+            $sectionId = Identifier::assert($sectionId, 'section');
 
             if (!is_array($sectionData)) {
                 throw new InvalidConfigException("Configuration for section '{$sectionId}' must be an array.");
@@ -86,35 +83,38 @@ class Sections implements ValidatorInterface
                 $sortOrder = $sectionData['sort_order'];
             }
 
-            $cleanSections[$sectionId] = [
-                'tab'        => $targetTab,
-                'label'      => $label,
-                'sort_order' => $sortOrder,
-            ];
-
+            $class = '';
             if (isset($sectionData['class'])) {
                 if (!is_string($sectionData['class'])) {
                     throw new InvalidConfigException("Field 'class' for section '{$sectionId}' must be a valid string.");
                 }
-                $cleanSections[$sectionId]['class'] = trim($sectionData['class']);
+                $class = trim($sectionData['class']);
             }
 
+            $icon = '';
             if (isset($sectionData['icon'])) {
                 if (!is_string($sectionData['icon'])) {
                     throw new InvalidConfigException("Field 'icon' for section '{$sectionId}' must be a valid string layout modifier.");
                 }
-                $cleanSections[$sectionId]['icon'] = trim($sectionData['icon']);
+                $icon = trim($sectionData['icon']);
             }
 
-            // NEW CASCADING STEP: Forward execution to Groups instead of Fields
+            $groups = [];
             if (isset($sectionData['groups'])) {
                 if (!is_array($sectionData['groups'])) {
                     throw new InvalidConfigException("The 'groups' under section '{$sectionId}' must be an array.");
                 }
-                $cleanSections[$sectionId]['groups'] = $this->groupsValidator->validate($sectionData['groups']);
-            } else {
-                $cleanSections[$sectionId]['groups'] = [];
+                $groups = $this->groupsValidator->validate($sectionData['groups']);
             }
+
+            $cleanSections[$sectionId] = [
+                'tab'        => $targetTab,
+                'label'      => $label,
+                'sort_order' => $sortOrder,
+                'class'      => $class,
+                'icon'       => $icon,
+                'groups'     => $groups,
+            ];
         }
 
         uasort($cleanSections, fn(array $a, array $b): int => $a['sort_order'] <=> $b['sort_order']);

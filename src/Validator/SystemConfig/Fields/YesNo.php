@@ -14,27 +14,24 @@ namespace Modestox\ConfigProcessor\Validator\SystemConfig\Fields;
 /**
  * Class YesNo
  *
- * Automatically generates standard binary options (0 => No, 1 => Yes) to simplify layout definitions.
+ * Validates yes/no select fields.
  */
 class YesNo extends Select
 {
-    /**
-     * @inheritDoc
-     */
+    /** @inheritDoc */
     public function validate(string $fieldId, array $fieldData, array $baseMeta): array
     {
-        // Automatically inject hardcoded options for developer convenience and speed
+        // Options are fixed; any user-supplied options are overridden.
         $fieldData['options'] = [
             0 => 'No',
             1 => 'Yes',
         ];
 
-        // Fallback to 0 if default is not specified or invalid
+        // Default falls back to 0 (No).
         if (!isset($fieldData['default'])) {
             $fieldData['default'] = 0;
         }
 
-        // Delegate to the parent Select validator, which will seamlessly process the injected options
         return parent::validate($fieldId, $fieldData, $baseMeta);
     }
 }

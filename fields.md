@@ -1,6 +1,8 @@
 # Detailed Field Specifications & Properties
 
-Every configuration field in the system, regardless of its specific type (`type`), supports and validates a set of **Common Properties** at the base level:
+Field ids (the array keys) must match `^[a-z0-9_]+$`; ids made only of digits are not supported.
+
+Every configuration field, regardless of its type (`type`), supports and validates a set of **Common Properties**:
 * `type` *(string, required)* — The unique type identifier of the field.
 * `label` *(string, optional)* — The display name of the field. If omitted or an empty string is provided, it defaults to the field's array identifier key.
 * `sort_order` *(int, optional)* — Sequential index for sorting within the group context. Defaults to `0`.
@@ -8,8 +10,8 @@ Every configuration field in the system, regardless of its specific type (`type`
 * `class` *(string, optional)* — Additional CSS class for input UI customization. Automatically trimmed. Defaults to `""`.
 * `validation` *(array, optional)* — An array of validation rule strings. Each rule is automatically stripped of whitespaces. Defaults to `[]`.
 * `required` *(bool, optional)* — Defines whether filling the field is mandatory. Defaults to `false`.
-* `depends` *(array, optional)* — Conditional visibility constraints. A field can depend on one or more parent fields within the same group. Passed as an associative array mapping parent field keys to expected scalar values (e.g., `['enable_api' => 1, 'api_mode' => 'live']`). Defaults to `null`.
-* `provider` *(string, optional)* — FQCN (Fully Qualified Class Name) of the dynamic data supplier. Used to fetch dynamic options matrices at runtime. Defaults to `""`.
+* `depends` *(array, optional)* — Conditional visibility constraints. A field can depend on one or more parent fields within the same group. Passed as an associative array mapping parent field keys to expected scalar values (e.g., `['enable_api' => 1, 'api_mode' => 'live']`). A field cannot depend on itself, and dependency cycles (`a -> b -> a`) are rejected. The expected value is not checked against the parent's options. Defaults to `null`.
+* `provider` *(string, optional)* — FQCN of a dynamic data supplier. Stored as a trimmed string; the library neither validates it as a class name nor resolves it. Defaults to `""`.
 
 ---
 
@@ -45,11 +47,12 @@ A specialized select element for fast declaration of boolean options without man
 ### 6. `number` (Numeric Input Field)
 An input component for integers or floating-point values (limits, cache timeouts, primary IDs, prices).
 * **Type-Specific Properties:**
-  * `default` *(int|float, optional)* — Numeric fallback value. Defaults to `0` if not set.
+  * `default` *(int|float, optional)* — Numeric fallback value. If not set, defaults to `0`, or to the nearest bound when `0` is outside `min`/`max` (e.g. `min => 5` gives `5`).
   * `min` *(int|float, optional)* — Lower bounds boundary condition.
   * `max` *(int|float, optional)* — Upper bounds boundary condition.
 * **Validation Rules:**
   * Passing string types (e.g., `"10"`) to `min`, `max`, or `default` will trigger a validation exception (`InvalidConfigException`).
+  * `NAN` and `INF` are rejected.
   * If both `min` and `max` are defined, the processor strictly ensures that `max` is not less than `min`.
   * The `default` value must fall within the inclusive range defined by `min` and `max`, otherwise validation fails.
 
@@ -64,25 +67,25 @@ A picker component for temporal dates, times, or unified timestamps built on str
 * **Validation Rules:**
   * The `default` value is automatically trimmed. If provided, it must match the regular expression and logical format criteria of the chosen `view_mode` exactly.
   * Calendar dates are validated for real-world correctness (e.g., February 31st or 25:00:00 will be rejected).
-  * Any structural discrepancy or unsupported `view_mode` will throw an `InvalidConfigException`.
+  * A non-string or unsupported `view_mode` throws an `InvalidConfigException`; it is never silently replaced.
 
 ### 8. `dynamic_rows` (Tabular Matrix Grid)
 A complex matrix constructor permitting administrators to dynamically add rows of structured datasets (shipping rate grids, code mappings).
 * **Type-Specific Properties:**
-  * `columns` *(array, required)* — Associative array declaring the schema header definitions. Key is the string column ID; value is the UI header string (e.g., `['weight' => 'Max Weight', 'cost' => 'Price']`). Both keys and labels are automatically trimmed.
+  * `columns` *(array, required)* — Associative array declaring the schema header definitions. Key is the string column ID; value is the UI header string (e.g., `['weight' => 'Max Weight', 'cost' => 'Price']`). Both keys and labels are automatically trimmed. At least one column is required; blank ids and ids that collide after trimming are rejected.
   * `default` *(array, optional)* — Multi-dimensional array representing predefined table rows.
 * **Validation Rules:**
   * Omitting the `columns` block or passing an invalid type triggers a critical exception.
   * Every nested item within `default` must be an associative array. If an inner row declares a column key missing from `columns`, the processor aborts processing.
-  * If a row within `default` misses a key defined in `columns`, the processor automatically backfills that column with an empty string `""` to ensure data structure predictability. All cell values are deeply trimmed.
+  * If a row within `default` misses a key defined in `columns`, the processor automatically backfills that column with an empty string `""` to ensure data structure predictability. Cell values must be strings or numbers; numbers are cast to strings, and all cells are trimmed.
 
 ### 9. `file` & `image` (Declarative Asset Upload Rules)
 Configuration objects preparing destination rules for files and media objects handled by the core application runtime. `image` inherits all properties directly from `file`.
 * **Type-Specific Properties:**
-  * `upload_dir` *(string, optional)* — Target path destination mapping. Automatically trimmed. Defaults to `""`.
-  * `extensions` *(string, optional)* — Comma-separated listing of permitted file extensions (e.g., `'jpg,png,webp'`). Automatically stripped of spaces. Defaults to `""`.
+  * `upload_dir` *(string, optional)* — Target path destination mapping. Automatically trimmed. Paths containing `..` segments or null bytes are rejected. Defaults to `""`.
+  * `extensions` *(string, optional)* — Comma-separated listing of permitted file extensions without dots (e.g., `'jpg,png,webp'`). All whitespace is stripped; any other format (leading dots, empty items, wildcards) is rejected. Defaults to `""`.
 * **Architectural Blueprint:**
-  * These definitions are purely declarative. They do not enforce strict systemic path assertions or default extensions, returning empty strings if omitted. This allows the calling application to apply global or context-aware file upload logic later.
+  * These definitions are declarative. Apart from the checks above, the library does not verify that the directory exists or is allowed; the calling application applies its own upload logic.
 
 ### 10. `select` & `radio` (Single Option Pickers)
 User interface controls enabling the choice of exactly one parameter out of a fixed selection matrix. Validation logic for `radio` is identical to `select`.
@@ -109,4 +112,3 @@ A specialized component used for rendering instructions, warnings, or inline not
   * `format` *(string, optional)* — Defines how the content should be interpreted by the consuming application. Accepts two options:
     * `'text'` — Plain text format. The rendering frontend must escape the content (e.g., via `htmlspecialchars()`) to prevent XSS vulnerability risks. **Enforced as default if omitted.**
     * `'html'` — Raw markup rendering allowed. Developers are responsible for ensuring safe markup implementation when embedding anchor tags (`<a>`), line breaks, or text emphasis.
-```

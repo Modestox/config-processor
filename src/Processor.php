@@ -17,15 +17,14 @@ use Modestox\ConfigProcessor\Schema\SchemaInterface;
 /**
  * Class Processor
  *
- * Act as an orchestrator that delegates tasks to dedicated sub-validators.
+ * Delegates validation to the given schema.
  */
 class Processor
 {
     /**
-     * Processes any dirty configuration array based on the provided validation schema.
+     * Processes raw configuration data.
      *
      * @param array<string, mixed> $dirtyData
-     * @param SchemaInterface $schema
      * @return array<string, mixed>
      * @throws InvalidConfigException
      */

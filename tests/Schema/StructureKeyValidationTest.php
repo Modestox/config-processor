@@ -20,7 +20,7 @@ use Modestox\ConfigProcessor\Exception\InvalidConfigException;
 /**
  * Class StructureKeyValidationTest
  *
- * Verifies that all configuration tree identifier keys strictly allow only a-z, 0-9, and underscores.
+ * Tests identifier validation.
  */
 class StructureKeyValidationTest extends TestCase
 {
@@ -31,9 +31,7 @@ class StructureKeyValidationTest extends TestCase
         $this->processor = new Processor();
     }
 
-    /**
-     * @covers \Modestox\ConfigProcessor\Validator\SystemConfig\Tabs::validate
-     */
+    /** Tab key with spaces throws exception. */
     public function testTabKeyWithSpacesThrowsException(): void
     {
         $invalidInput = [
@@ -50,9 +48,7 @@ class StructureKeyValidationTest extends TestCase
         $this->processor->process($invalidInput, new SystemConfig());
     }
 
-    /**
-     * @covers \Modestox\ConfigProcessor\Validator\SystemConfig\Sections::validate
-     */
+    /** Section key with uppercase and spaces throws exception. */
     public function testSectionKeyWithUppercaseAndSpacesThrowsException(): void
     {
         $invalidInput = [
@@ -73,9 +69,7 @@ class StructureKeyValidationTest extends TestCase
         $this->processor->process($invalidInput, new SystemConfig());
     }
 
-    /**
-     * @covers \Modestox\ConfigProcessor\Validator\SystemConfig\Groups::validate
-     */
+    /** Group key with spaces throws exception. */
     public function testGroupKeyWithSpacesThrowsException(): void
     {
         $invalidInput = [
@@ -93,9 +87,7 @@ class StructureKeyValidationTest extends TestCase
         $this->processor->process($invalidInput, new GroupedConfig());
     }
 
-    /**
-     * @covers \Modestox\ConfigProcessor\Validator\SystemConfig\Fields::validate
-     */
+    /** Field key with hyphen throws exception. */
     public function testFieldKeyWithHyphenThrowsException(): void
     {
         $invalidInput = [
@@ -117,9 +109,7 @@ class StructureKeyValidationTest extends TestCase
         $this->processor->process($invalidInput, new GroupedConfig());
     }
 
-    /**
-     * Verifies that valid identifiers (snake_case, numeric, lowercase) pass successfully.
-     */
+    /** Strict identifiers pass validation. */
     public function testStrictIdentifiersPassValidation(): void
     {
         $validInput = [

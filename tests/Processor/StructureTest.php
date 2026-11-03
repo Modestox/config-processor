@@ -19,30 +19,21 @@ use Modestox\ConfigProcessor\Exception\InvalidConfigException;
 /**
  * Class StructureTest
  *
- * Validates the core structural hierarchy (Tabs -> Sections -> Groups -> Fields)
- * and enforces correct sorting order across all configuration levels.
+ * Tests the structural hierarchy.
  */
 class StructureTest extends TestCase
 {
     private Processor $processor;
     private SystemConfig $schema;
 
-    /**
-     * Initialize the processor and system configuration schema environment.
-     *
-     * @return void
-     */
+    /** Prepares fixtures. */
     protected function setUp(): void
     {
         $this->processor = new Processor();
         $this->schema = new SystemConfig();
     }
 
-    /**
-     * Tests that valid core layout wrappers are parsed, sorted, and populated with system defaults.
-     *
-     * @return void
-     */
+    /** Process validates and sorts hierarchy levels successfully. */
     public function testProcessValidatesAndSortsHierarchyLevelsSuccessfully(): void
     {
         $rawInput = [
@@ -98,12 +89,9 @@ class StructureTest extends TestCase
     }
 
     /**
-     * Parameterized test verifying structural layout configuration rule violations.
+     * Process throws exception on structural validation failures.
      *
      * @dataProvider structuralInvalidConfigProvider
-     * @param array<string, mixed> $rawInput
-     * @param string $expectedMessage
-     * @return void
      */
     public function testProcessThrowsExceptionOnStructuralValidationFailures(array $rawInput, string $expectedMessage): void
     {
@@ -113,11 +101,7 @@ class StructureTest extends TestCase
         $this->processor->process($rawInput, $this->schema);
     }
 
-    /**
-     * Data provider containing matrices of deformed configuration structural setups.
-     *
-     * @return array<string, array{rawInput: array<string, mixed>, expectedMessage: string}>
-     */
+    /** Structural invalid config cases. */
     public function structuralInvalidConfigProvider(): array
     {
         return [

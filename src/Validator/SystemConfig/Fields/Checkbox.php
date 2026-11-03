@@ -14,9 +14,8 @@ namespace Modestox\ConfigProcessor\Validator\SystemConfig\Fields;
 /**
  * Class Checkbox
  *
- * Validates checkbox group structures by inheriting standard multiselect constraints.
+ * Validates checkbox group fields.
  */
 class Checkbox extends Multiselect
 {
-    // Inherits all validation rules and 'validateCommon' integration from Multiselect
 }

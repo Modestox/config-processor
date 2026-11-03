@@ -16,12 +16,12 @@ use Modestox\ConfigProcessor\Exception\InvalidConfigException;
 /**
  * Class AbstractFieldValidator
  *
- * Provides shared validation logic to reduce redundancy across field type strategies.
+ * Provides shared field validation helpers.
  */
 abstract class AbstractFieldValidator implements FieldValidatorInterface
 {
     /**
-     * Validates and returns common field attributes.
+     * Validates common field attributes.
      */
     protected function validateCommon(string $fieldId, array $fieldData): array
     {
@@ -34,6 +34,9 @@ abstract class AbstractFieldValidator implements FieldValidatorInterface
         ];
     }
 
+    /**
+     * Validates an optional string.
+     */
     protected function validateString(array $data, string $key, string $fieldId, string $default): string
     {
         if (!isset($data[$key])) {
@@ -45,6 +48,9 @@ abstract class AbstractFieldValidator implements FieldValidatorInterface
         return trim($data[$key]);
     }
 
+    /**
+     * Validates an optional boolean.
+     */
     protected function validateBool(array $data, string $key, string $fieldId, bool $default): bool
     {
         if (!isset($data[$key])) {
@@ -56,6 +62,9 @@ abstract class AbstractFieldValidator implements FieldValidatorInterface
         return $data[$key];
     }
 
+    /**
+     * Validates an optional list of strings.
+     */
     protected function validateArray(array $data, string $key, string $fieldId, array $default): array
     {
         if (!isset($data[$key])) {

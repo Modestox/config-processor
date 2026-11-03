@@ -19,30 +19,21 @@ use Modestox\ConfigProcessor\Exception\InvalidConfigException;
 /**
  * Class DependencyTest
  *
- * Validates cross-field dependency constraints ('depends' configurations)
- * supporting both single and multiple parent conditions inside a group.
+ * Tests field dependencies.
  */
 class DependencyTest extends TestCase
 {
     private Processor $processor;
     private SystemConfig $schema;
 
-    /**
-     * Set up the validation orchestrator environment.
-     *
-     * @return void
-     */
+    /** Prepares fixtures. */
     protected function setUp(): void
     {
         $this->processor = new Processor();
         $this->schema = new SystemConfig();
     }
 
-    /**
-     * Tests that a standard single dependency declaration correctly passes validation.
-     *
-     * @return void
-     */
+    /** Process validates successful single depends condition. */
     public function testProcessValidatesSuccessfulSingleDependsCondition(): void
     {
         $rawInput = [
@@ -81,11 +72,7 @@ class DependencyTest extends TestCase
         $this->assertNull($fields['enable_api']['depends']);
     }
 
-    /**
-     * Tests that multiple dependency conditions (Enterprise logic) are successfully compiled.
-     *
-     * @return void
-     */
+    /** Process validates successful multiple depends conditions. */
     public function testProcessValidatesSuccessfulMultipleDependsConditions(): void
     {
         $rawInput = [
@@ -133,12 +120,9 @@ class DependencyTest extends TestCase
     }
 
     /**
-     * Parameterized test catching dynamic field visibility dependency violations.
+     * Process throws exception on dependency malformations.
      *
      * @dataProvider invalidDependencyProvider
-     * @param array<string, mixed> $rawInput
-     * @param string $expectedMessage
-     * @return void
      */
     public function testProcessThrowsExceptionOnDependencyMalformations(array $rawInput, string $expectedMessage): void
     {
@@ -148,11 +132,7 @@ class DependencyTest extends TestCase
         $this->processor->process($rawInput, $this->schema);
     }
 
-    /**
-     * Data provider containing matrices of deformed dependency parameters.
-     *
-     * @return array<string, array{rawInput: array<string, mixed>, expectedMessage: string}>
-     */
+    /** Invalid dependency cases. */
     public function invalidDependencyProvider(): array
     {
         $baseSkeleton = [

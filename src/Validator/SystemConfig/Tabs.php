@@ -1,41 +1,39 @@
 <?php
+/**
+ * Modestox Config Processor
+ *
+ * @copyright Copyright (c) 2026 Sergey Kuzmitsky
+ * @license   MIT
+ * @link      https://github.com/Modestox/config-processor
+ */
 
 declare(strict_types=1);
 
 namespace Modestox\ConfigProcessor\Validator\SystemConfig;
 
-use Modestox\ConfigProcessor\Validator\ValidatorInterface;
 use Modestox\ConfigProcessor\Exception\InvalidConfigException;
+use Modestox\ConfigProcessor\Validator\Identifier;
+use Modestox\ConfigProcessor\Validator\ValidatorInterface;
 
+/**
+ * Class Tabs
+ *
+ * Validates top-level tabs.
+ */
 class Tabs implements ValidatorInterface
 {
-    /**
-     * Validates and sanitizes the tabs list with fallback rules.
-     *
-     * @param array<string, mixed> $tabs
-     * @param array $context
-     * @return array<string, mixed>
-     * @throws InvalidConfigException
-     */
+    /** @inheritDoc */
     public function validate(array $tabs, array $context = []): array
     {
         $cleanTabs = [];
 
         foreach ($tabs as $tabId => $tabData) {
-            // 1. Validate that the configuration array key is strictly a string identifier
-            if (!is_string($tabId)) {
-                throw new InvalidConfigException("The tab identifier key must be a valid string.");
-            }
-
-            if (!preg_match('/^[a-z0-9_]+$/', $tabId)) {
-                throw new InvalidConfigException("The tab identifier key '{$tabId}' contains invalid characters. Only lower-case alphanumeric characters and underscores are allowed (a-z, 0-9, _).");
-            }
+            $tabId = Identifier::assert($tabId, 'tab');
 
             if (!is_array($tabData)) {
                 throw new InvalidConfigException("Configuration for tab '{$tabId}' must be an array.");
             }
 
-            // 2. Validate and sanitize 'label' (Strictly string)
             $label = $tabId;
             if (isset($tabData['label'])) {
                 if (!is_string($tabData['label'])) {
@@ -48,7 +46,6 @@ class Tabs implements ValidatorInterface
                 }
             }
 
-            // 3. Validate 'sort_order' (Strictly integer)
             $sortOrder = 0;
             if (isset($tabData['sort_order'])) {
                 if (!is_int($tabData['sort_order'])) {
@@ -57,26 +54,28 @@ class Tabs implements ValidatorInterface
                 $sortOrder = $tabData['sort_order'];
             }
 
-            $cleanTabs[$tabId] = [
-                'label'      => $label,
-                'sort_order' => $sortOrder,
-            ];
-
-            // 4. Validate 'class' modifier (Strictly string)
+            $class = '';
             if (isset($tabData['class'])) {
                 if (!is_string($tabData['class'])) {
                     throw new InvalidConfigException("Field 'class' for tab '{$tabId}' must be a valid string.");
                 }
-                $cleanTabs[$tabId]['class'] = trim($tabData['class']);
+                $class = trim($tabData['class']);
             }
 
-            // 5. Validate 'icon' modifier (Strictly string)
+            $icon = '';
             if (isset($tabData['icon'])) {
                 if (!is_string($tabData['icon'])) {
                     throw new InvalidConfigException("Field 'icon' for tab '{$tabId}' must be a valid string layout modifier.");
                 }
-                $cleanTabs[$tabId]['icon'] = trim($tabData['icon']);
+                $icon = trim($tabData['icon']);
             }
+
+            $cleanTabs[$tabId] = [
+                'label'      => $label,
+                'sort_order' => $sortOrder,
+                'class'      => $class,
+                'icon'       => $icon,
+            ];
         }
 
         uasort($cleanTabs, fn(array $a, array $b): int => $a['sort_order'] <=> $b['sort_order']);

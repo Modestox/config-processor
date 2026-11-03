@@ -14,8 +14,7 @@ namespace Modestox\ConfigProcessor\Exception;
 /**
  * Class InvalidConfigException
  *
- * Standard library domain exception thrown when a configuration structure
- * or field type validation rule is violated.
+ * Thrown when a configuration is invalid.
  */
 class InvalidConfigException extends \Exception
 {

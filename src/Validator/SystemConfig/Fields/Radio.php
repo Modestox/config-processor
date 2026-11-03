@@ -14,9 +14,8 @@ namespace Modestox\ConfigProcessor\Validator\SystemConfig\Fields;
 /**
  * Class Radio
  *
- * Validates radio button group structures by inheriting standard select list constraints.
+ * Validates radio group fields.
  */
 class Radio extends Select
 {
-    // Inherits all validation rules and 'validateCommon' integration from Select
 }

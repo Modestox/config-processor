@@ -14,21 +14,16 @@ namespace Modestox\ConfigProcessor\Validator\SystemConfig\Fields;
 /**
  * Class Boolean
  *
- * Validates and normalizes attributes specific only to the 'boolean' toggle/checkbox field type.
+ * Validates boolean fields.
  */
 class Boolean extends AbstractFieldValidator
 {
-    /**
-     * @inheritDoc
-     */
+    /** @inheritDoc */
     public function validate(string $fieldId, array $fieldData, array $baseMeta): array
     {
-        // Boolean type strictly requires 'default' to be a boolean
         $specific = [
             'default' => $this->validateBool($fieldData, 'default', $fieldId, false),
         ];
-
-        // Merge all layers: base metadata, unique attributes, and shared ones
         return array_merge($baseMeta, $specific, $this->validateCommon($fieldId, $fieldData));
     }
 }

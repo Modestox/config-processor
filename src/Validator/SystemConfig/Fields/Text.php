@@ -14,22 +14,17 @@ namespace Modestox\ConfigProcessor\Validator\SystemConfig\Fields;
 /**
  * Class Text
  *
- * Validates and normalizes attributes specific only to the standard 'text' input field type.
+ * Validates text fields.
  */
 class Text extends AbstractFieldValidator
 {
-    /**
-     * @inheritDoc
-     */
+    /** @inheritDoc */
     public function validate(string $fieldId, array $fieldData, array $baseMeta): array
     {
-        // Only validate parameters unique to the 'text' type
         $specific = [
             'default'     => $this->validateString($fieldData, 'default', $fieldId, ''),
             'placeholder' => $this->validateString($fieldData, 'placeholder', $fieldId, ''),
         ];
-
-        // Merge base meta, common meta (via AbstractFieldValidator), and specific attributes
         return array_merge($baseMeta, $specific, $this->validateCommon($fieldId, $fieldData));
     }
 }

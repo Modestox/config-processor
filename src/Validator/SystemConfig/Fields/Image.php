@@ -14,9 +14,8 @@ namespace Modestox\ConfigProcessor\Validator\SystemConfig\Fields;
 /**
  * Class Image
  *
- * Validates and normalizes declarative rules specific to media image uploads.
+ * Validates image upload fields.
  */
 class Image extends File
 {
-    // Inherits clean string validation and empty fallbacks directly from File class
 }

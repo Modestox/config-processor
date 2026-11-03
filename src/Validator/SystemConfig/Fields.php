@@ -11,35 +11,44 @@ declare(strict_types=1);
 
 namespace Modestox\ConfigProcessor\Validator\SystemConfig;
 
-use Modestox\ConfigProcessor\Validator\ValidatorInterface;
-use Modestox\ConfigProcessor\Validator\SystemConfig\Fields\FieldValidatorInterface;
+use InvalidArgumentException;
 use Modestox\ConfigProcessor\Exception\InvalidConfigException;
-
-use Modestox\ConfigProcessor\Validator\SystemConfig\Fields\Text;
+use Modestox\ConfigProcessor\Validator\Identifier;
 use Modestox\ConfigProcessor\Validator\SystemConfig\Fields\Boolean;
-use Modestox\ConfigProcessor\Validator\SystemConfig\Fields\Select;
-use Modestox\ConfigProcessor\Validator\SystemConfig\Fields\Multiselect;
-use Modestox\ConfigProcessor\Validator\SystemConfig\Fields\Radio;
 use Modestox\ConfigProcessor\Validator\SystemConfig\Fields\Checkbox;
-use Modestox\ConfigProcessor\Validator\SystemConfig\Fields\Textarea;
-use Modestox\ConfigProcessor\Validator\SystemConfig\Fields\Number;
-use Modestox\ConfigProcessor\Validator\SystemConfig\Fields\YesNo;
 use Modestox\ConfigProcessor\Validator\SystemConfig\Fields\Datetime;
-use Modestox\ConfigProcessor\Validator\SystemConfig\Fields\Password;
 use Modestox\ConfigProcessor\Validator\SystemConfig\Fields\DynamicRows;
+use Modestox\ConfigProcessor\Validator\SystemConfig\Fields\FieldValidatorInterface;
 use Modestox\ConfigProcessor\Validator\SystemConfig\Fields\File;
 use Modestox\ConfigProcessor\Validator\SystemConfig\Fields\Image;
 use Modestox\ConfigProcessor\Validator\SystemConfig\Fields\InfoBlock;
+use Modestox\ConfigProcessor\Validator\SystemConfig\Fields\Multiselect;
+use Modestox\ConfigProcessor\Validator\SystemConfig\Fields\Number;
+use Modestox\ConfigProcessor\Validator\SystemConfig\Fields\Password;
+use Modestox\ConfigProcessor\Validator\SystemConfig\Fields\Radio;
+use Modestox\ConfigProcessor\Validator\SystemConfig\Fields\Select;
+use Modestox\ConfigProcessor\Validator\SystemConfig\Fields\Text;
+use Modestox\ConfigProcessor\Validator\SystemConfig\Fields\Textarea;
+use Modestox\ConfigProcessor\Validator\SystemConfig\Fields\YesNo;
+use Modestox\ConfigProcessor\Validator\ValidatorInterface;
 
+/**
+ * Class Fields
+ *
+ * Validates fields and resolves type strategies and dependencies.
+ */
 class Fields implements ValidatorInterface
 {
+    private const TYPE_PATTERN = '/^[a-z0-9_]+$/D';
+
     /** @var array<string, FieldValidatorInterface> */
-    private array $validators = [];
+    private array $validators;
 
     /**
      * Fields constructor.
      *
-     * @param array<string, FieldValidatorInterface> $validators Custom validators to extend or override defaults.
+     * @param array<string, FieldValidatorInterface> $validators Custom validators extending or overriding defaults.
+     * @throws InvalidArgumentException
      */
     public function __construct(array $validators = [])
     {
@@ -62,35 +71,40 @@ class Fields implements ValidatorInterface
         ];
 
         foreach ($validators as $type => $validator) {
-            if (is_string($type) && $validator instanceof FieldValidatorInterface) {
-                $this->registerType($type, $validator);
+            if (!is_string($type) || !$validator instanceof FieldValidatorInterface) {
+                throw new InvalidArgumentException(
+                    'Custom validators must be passed as a map of type name => ' . FieldValidatorInterface::class . '.',
+                );
             }
+            $this->registerType($type, $validator);
         }
     }
 
     /**
-     * Dynamically extends the component with a custom field type validator strategy.
+     * Registers or overrides a field type validator.
+     *
+     * @throws InvalidArgumentException
      */
     public function registerType(string $type, FieldValidatorInterface $validator): void
     {
-        $this->validators[trim($type)] = $validator;
+        $type = trim($type);
+
+        if (!preg_match(self::TYPE_PATTERN, $type)) {
+            throw new InvalidArgumentException(
+                "The field type name '{$type}' is invalid. Only lower-case alphanumeric characters and underscores are allowed (a-z, 0-9, _).",
+            );
+        }
+
+        $this->validators[$type] = $validator;
     }
 
-    /**
-     * @inheritDoc
-     */
+    /** @inheritDoc */
     public function validate(array $fields, array $context = []): array
     {
         $cleanFields = [];
 
         foreach ($fields as $fieldId => $fieldData) {
-            if (!is_string($fieldId)) {
-                throw new InvalidConfigException("The field identifier key must be a valid string.");
-            }
-
-            if (!preg_match('/^[a-z0-9_]+$/', $fieldId)) {
-                throw new InvalidConfigException("The field identifier key '{$fieldId}' contains invalid characters. Only lower-case alphanumeric characters and underscores are allowed (a-z, 0-9, _).");
-            }
+            $fieldId = Identifier::assert($fieldId, 'field');
 
             if (!is_array($fieldData)) {
                 throw new InvalidConfigException("Configuration for field '{$fieldId}' must be an array.");
@@ -116,43 +130,98 @@ class Fields implements ValidatorInterface
             $cleanFields[$fieldId] = $this->validators[$type]->validate($fieldId, $fieldData, $baseMeta);
         }
 
-        // Step 2: Cross-validation of MULTIPLE 'depends' constraints (Enterprise ready)
+        // Dependencies are resolved after all fields are known, so declaration order does not matter.
+        $graph = [];
         foreach ($fields as $fieldId => $fieldData) {
-            if (isset($fieldData['depends'])) {
-                if (!is_array($fieldData['depends'])) {
-                    throw new InvalidConfigException("The 'depends' parameter for field '{$fieldId}' must be an array.");
-                }
-                if ($fieldData['depends'] === []) {
-                    throw new InvalidConfigException("The 'depends' array for field '{$fieldId}' cannot be empty.");
-                }
-
-                $cleanDepends = [];
-                foreach ($fieldData['depends'] as $parentFieldId => $expectedValue) {
-                    $parentFieldId = (string)$parentFieldId;
-
-                    if (!array_key_exists($parentFieldId, $cleanFields)) {
-                        throw new InvalidConfigException(
-                            "Field '{$fieldId}' depends on an undefined parent field '{$parentFieldId}' within the same group.",
-                        );
-                    }
-                    if (!is_scalar($expectedValue)) {
-                        throw new InvalidConfigException("The dependency target value for field '{$fieldId}' must be a strict scalar value.");
-                    }
-
-                    $cleanDepends[$parentFieldId] = $expectedValue;
-                }
-
-                $cleanFields[$fieldId]['depends'] = $cleanDepends;
-            } else {
+            if (!isset($fieldData['depends'])) {
                 $cleanFields[$fieldId]['depends'] = null;
+                continue;
             }
+
+            if (!is_array($fieldData['depends'])) {
+                throw new InvalidConfigException("The 'depends' parameter for field '{$fieldId}' must be an array.");
+            }
+            if ($fieldData['depends'] === []) {
+                throw new InvalidConfigException("The 'depends' array for field '{$fieldId}' cannot be empty.");
+            }
+
+            $cleanDepends = [];
+            foreach ($fieldData['depends'] as $parentFieldId => $expectedValue) {
+                $parentFieldId = (string)$parentFieldId;
+
+                if (!array_key_exists($parentFieldId, $cleanFields)) {
+                    throw new InvalidConfigException(
+                        "Field '{$fieldId}' depends on an undefined parent field '{$parentFieldId}' within the same group.",
+                    );
+                }
+                if (!is_scalar($expectedValue)) {
+                    throw new InvalidConfigException("The dependency target value for field '{$fieldId}' must be a strict scalar value.");
+                }
+
+                $cleanDepends[$parentFieldId] = $expectedValue;
+            }
+
+            $cleanFields[$fieldId]['depends'] = $cleanDepends;
+            $graph[$fieldId] = array_map('strval', array_keys($cleanDepends));
         }
+
+        $this->assertNoCircularDependencies($graph);
 
         uasort($cleanFields, fn(array $a, array $b): int => $a['sort_order'] <=> $b['sort_order']);
 
         return $cleanFields;
     }
 
+    /**
+     * Rejects self-dependencies and dependency cycles.
+     *
+     * @param array<string, list<string>> $graph Field id => parent field ids.
+     * @throws InvalidConfigException
+     */
+    private function assertNoCircularDependencies(array $graph): void
+    {
+        $state = [];
+
+        foreach (array_keys($graph) as $fieldId) {
+            $this->visitDependency((string)$fieldId, $graph, $state, []);
+        }
+    }
+
+    /**
+     * Depth-first walk over the dependency graph.
+     *
+     * @param array<string, list<string>> $graph
+     * @param array<string, int> $state 1 = in progress, 2 = done.
+     * @param list<string> $path
+     * @throws InvalidConfigException
+     */
+    private function visitDependency(string $fieldId, array $graph, array &$state, array $path): void
+    {
+        $current = $state[$fieldId] ?? 0;
+
+        if ($current === 2) {
+            return;
+        }
+
+        if ($current === 1) {
+            $cycle = array_slice($path, (int)array_search($fieldId, $path, true));
+            $cycle[] = $fieldId;
+            throw new InvalidConfigException('Circular dependency detected between fields: ' . implode(' -> ', $cycle) . '.');
+        }
+
+        $state[$fieldId] = 1;
+        $path[] = $fieldId;
+
+        foreach ($graph[$fieldId] ?? [] as $parentFieldId) {
+            $this->visitDependency($parentFieldId, $graph, $state, $path);
+        }
+
+        $state[$fieldId] = 2;
+    }
+
+    /**
+     * Validates the field label.
+     */
     private function validateLabel(string $fieldId, array $data): string
     {
         if (isset($data['label'])) {
@@ -164,6 +233,9 @@ class Fields implements ValidatorInterface
         return $fieldId;
     }
 
+    /**
+     * Validates the field sort order.
+     */
     private function validateSortOrder(array $data, string $fieldId): int
     {
         if (isset($data['sort_order'])) {

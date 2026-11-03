@@ -16,16 +16,13 @@ use Modestox\ConfigProcessor\Exception\InvalidConfigException;
 /**
  * Class Multiselect
  *
- * Validates and structures configuration components for multi-selection option lists.
+ * Validates multiselect fields.
  */
 class Multiselect extends AbstractFieldValidator
 {
-    /**
-     * @inheritDoc
-     */
+    /** @inheritDoc */
     public function validate(string $fieldId, array $fieldData, array $baseMeta): array
     {
-        // 1. Validate mandatory 'options' matrix
         if (!isset($fieldData['options']) || !is_array($fieldData['options']) || $fieldData['options'] === []) {
             throw new InvalidConfigException("Field '{$fieldId}' of type 'multiselect' must contain a non-empty array of 'options'.");
         }
@@ -41,7 +38,6 @@ class Multiselect extends AbstractFieldValidator
             $cleanOptions[$value] = trim($label);
         }
 
-        // 2. Validate 'default' parameter - STRICTLY an array
         $default = [];
         if (isset($fieldData['default'])) {
             if (!is_array($fieldData['default'])) {
@@ -63,8 +59,6 @@ class Multiselect extends AbstractFieldValidator
             }
             $default = $fieldData['default'];
         }
-
-        // Merge base, specific options, and shared common fields (comment, class, validation, required)
         return array_merge($baseMeta, [
             'options' => $cleanOptions,
             'default' => $default,

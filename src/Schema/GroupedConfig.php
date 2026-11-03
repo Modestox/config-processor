@@ -11,53 +11,37 @@ declare(strict_types=1);
 
 namespace Modestox\ConfigProcessor\Schema;
 
-use Modestox\ConfigProcessor\Validator\SystemConfig\Groups;
 use Modestox\ConfigProcessor\Exception\InvalidConfigException;
+use Modestox\ConfigProcessor\Validator\SystemConfig\Groups;
 
 /**
  * Class GroupedConfig
  *
- * Represents the lightweight isolated component/plugin configuration layout.
- * Bypasses system-level tabs and sections, working directly with groups and fields.
+ * Schema with groups and fields only.
  */
 class GroupedConfig implements SchemaInterface
 {
+    private readonly Groups $groups;
+
     /**
-     * GroupedConfig constructor.
-     * Injects required sub-validators via DI with native manual fallback.
-     *
-     * @param Groups|null $groups
+     * Creates the schema.
      */
-    public function __construct(
-        private ?Groups $groups = null,
-    ) {
-        $this->groups = $this->groups ?? new Groups();
+    public function __construct(?Groups $groups = null)
+    {
+        $this->groups = $groups ?? new Groups();
     }
 
-    /**
-     * Traverses and validates the standalone grouped configuration data tree structure.
-     *
-     * @param array<string, mixed> $dirtyData
-     * @return array<string, mixed>
-     * @throws InvalidConfigException
-     */
+    /** @inheritDoc */
     public function validate(array $dirtyData): array
     {
-        $cleanData = [];
-
-        // 1. Always validate top-level configuration groups first
-        if (isset($dirtyData['groups'])) {
-            if (!is_array($dirtyData['groups'])) {
-                throw new InvalidConfigException("The 'groups' section must be an array.");
-            }
-
-            // Execute isolated validator for the groups slice
-            $cleanData['groups'] = $this->groups->validate($dirtyData['groups']);
-        } else {
-            // Guarantee that the root key is present even if empty input was provided
+        if (!isset($dirtyData['groups'])) {
             throw new InvalidConfigException("Invalid configuration root structure. The 'groups' key is required for GroupedConfig.");
         }
 
-        return $cleanData;
+        if (!is_array($dirtyData['groups'])) {
+            throw new InvalidConfigException("The 'groups' section must be an array.");
+        }
+
+        return ['groups' => $this->groups->validate($dirtyData['groups'])];
     }
 }

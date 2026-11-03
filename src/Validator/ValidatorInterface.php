@@ -1,21 +1,30 @@
 <?php
+/**
+ * Modestox Config Processor
+ *
+ * @copyright Copyright (c) 2026 Sergey Kuzmitsky
+ * @license   MIT
+ * @link      https://github.com/Modestox/config-processor
+ */
 
 declare(strict_types=1);
 
 namespace Modestox\ConfigProcessor\Validator;
 
+use Modestox\ConfigProcessor\Exception\InvalidConfigException;
+
 /**
  * Interface ValidatorInterface
  *
- * Defines the contract for all sub-schema processors within the CMS ecosystem.
+ * Contract for configuration level validators.
  */
 interface ValidatorInterface
 {
     /**
-     * Validates and sanitizes the tabs list with fallback rules.
+     * Validates and normalizes a configuration level.
      *
-     * @param array $data
-     * @param array $context
+     * @param array<string, mixed> $data
+     * @param array<string, mixed> $context
      * @return array<string, mixed>
      * @throws InvalidConfigException
      */

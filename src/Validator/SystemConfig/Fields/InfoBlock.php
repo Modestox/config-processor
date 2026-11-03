@@ -16,19 +16,15 @@ use Modestox\ConfigProcessor\Exception\InvalidConfigException;
 /**
  * Class InfoBlock
  *
- * Validates non-data UI notification blocks used for displaying contextual instructions
- * or warnings with extensible format standards.
+ * Validates non-data info blocks.
  */
 class InfoBlock extends AbstractFieldValidator
 {
     private const ALLOWED_FORMATS = ['text', 'html'];
 
-    /**
-     * @inheritDoc
-     */
+    /** @inheritDoc */
     public function validate(string $fieldId, array $fieldData, array $baseMeta): array
     {
-        // 1. Enforce strict requirements for the mandatory payload description text
         if (!isset($fieldData['text'])) {
             throw new InvalidConfigException("Field 'text' is mandatory for infoblock type in '{$fieldId}'.");
         }
@@ -36,7 +32,6 @@ class InfoBlock extends AbstractFieldValidator
             throw new InvalidConfigException("Field 'text' for infoblock '{$fieldId}' must be a strict string.");
         }
 
-        // 2. Validate and scale the format parameter preventing future API breaks
         $format = 'text';
         if (isset($fieldData['format'])) {
             if (!is_string($fieldData['format'])) {
@@ -54,8 +49,6 @@ class InfoBlock extends AbstractFieldValidator
             'text'   => trim($fieldData['text']),
             'format' => $format,
         ];
-
-        // Deep merge including abstract generic attributes (sort_order, label, class, comment, required, validation)
         return array_merge($baseMeta, $specific, $this->validateCommon($fieldId, $fieldData));
     }
 }

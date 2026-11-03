@@ -16,51 +16,37 @@ use Modestox\ConfigProcessor\Exception\InvalidConfigException;
 /**
  * Class Number
  *
- * Validates and normalizes attributes specific to the numeric input field type.
+ * Validates numeric fields.
  */
 class Number extends AbstractFieldValidator
 {
-    /**
-     * @inheritDoc
-     */
+    /** @inheritDoc */
     public function validate(string $fieldId, array $fieldData, array $baseMeta): array
     {
-        // 1. Validate 'min' restriction if set
-        $min = null;
-        if (isset($fieldData['min'])) {
-            if (!is_int($fieldData['min']) && !is_float($fieldData['min'])) {
-                throw new InvalidConfigException("Field 'min' for number field '{$fieldId}' must be a strict integer or float.");
-            }
-            $min = $fieldData['min'];
+        $min = $this->validateNumber($fieldData, 'min', $fieldId);
+        $max = $this->validateNumber($fieldData, 'max', $fieldId);
+
+        if ($min !== null && $max !== null && $max < $min) {
+            throw new InvalidConfigException("Field 'max' cannot be less than 'min' for number field '{$fieldId}'.");
         }
 
-        // 2. Validate 'max' restriction if set
-        $max = null;
-        if (isset($fieldData['max'])) {
-            if (!is_int($fieldData['max']) && !is_float($fieldData['max'])) {
-                throw new InvalidConfigException("Field 'max' for number field '{$fieldId}' must be a strict integer or float.");
-            }
-            if ($min !== null && $fieldData['max'] < $min) {
-                throw new InvalidConfigException("Field 'max' cannot be less than 'min' for number field '{$fieldId}'.");
-            }
-            $max = $fieldData['max'];
-        }
+        $default = $this->validateNumber($fieldData, 'default', $fieldId);
 
-        // 3. Validate 'default' value (Must be numeric and fit within min/max boundaries if they exist)
-        $default = 0;
-        if (isset($fieldData['default'])) {
-            if (!is_int($fieldData['default']) && !is_float($fieldData['default'])) {
-                throw new InvalidConfigException("Field 'default' for number field '{$fieldId}' must be a strict integer or float.");
+        if ($default === null) {
+            // Zero is the natural fallback, unless the declared range excludes it.
+            $default = 0;
+            if ($min !== null && $min > 0) {
+                $default = $min;
+            } elseif ($max !== null && $max < 0) {
+                $default = $max;
             }
-
-            $defaultVal = $fieldData['default'];
-            if ($min !== null && $defaultVal < $min) {
+        } else {
+            if ($min !== null && $default < $min) {
                 throw new InvalidConfigException("Default value for number field '{$fieldId}' cannot be less than defined 'min' restriction.");
             }
-            if ($max !== null && $defaultVal > $max) {
+            if ($max !== null && $default > $max) {
                 throw new InvalidConfigException("Default value for number field '{$fieldId}' cannot be greater than defined 'max' restriction.");
             }
-            $default = $defaultVal;
         }
 
         $specific = [
@@ -70,5 +56,26 @@ class Number extends AbstractFieldValidator
         ];
 
         return array_merge($baseMeta, $specific, $this->validateCommon($fieldId, $fieldData));
+    }
+
+    /**
+     * Validates an optional finite number.
+     */
+    private function validateNumber(array $data, string $key, string $fieldId): int|float|null
+    {
+        if (!isset($data[$key])) {
+            return null;
+        }
+
+        $value = $data[$key];
+
+        if (!is_int($value) && !is_float($value)) {
+            throw new InvalidConfigException("Field '{$key}' for number field '{$fieldId}' must be a strict integer or float.");
+        }
+        if (is_float($value) && !is_finite($value)) {
+            throw new InvalidConfigException("Field '{$key}' for number field '{$fieldId}' must be a finite number.");
+        }
+
+        return $value;
     }
 }

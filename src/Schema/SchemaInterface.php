@@ -11,16 +11,21 @@ declare(strict_types=1);
 
 namespace Modestox\ConfigProcessor\Schema;
 
+use Modestox\ConfigProcessor\Exception\InvalidConfigException;
+
 /**
  * Interface SchemaInterface
  *
- * Defines the strict validation and normalization contract for configuration schemas.
+ * Contract for configuration schemas.
  */
 interface SchemaInterface
 {
     /**
+     * Validates and normalizes configuration data.
+     *
      * @param array<string, mixed> $dirtyData
      * @return array<string, mixed>
+     * @throws InvalidConfigException
      */
     public function validate(array $dirtyData): array;
 }

@@ -14,21 +14,17 @@ namespace Modestox\ConfigProcessor\Validator\SystemConfig\Fields;
 /**
  * Class Password
  *
- * Validates and normalizes password or sensitive API key inputs, masking them by default.
+ * Validates password fields.
  */
 class Password extends AbstractFieldValidator
 {
-    /**
-     * @inheritDoc
-     */
+    /** @inheritDoc */
     public function validate(string $fieldId, array $fieldData, array $baseMeta): array
     {
-        // Passwords must be strict strings. We trim them to prevent accidental copy-paste spaces.
+        // Trimmed to avoid accidental copy-paste whitespace.
         $specific = [
             'default' => $this->validateString($fieldData, 'default', $fieldId, ''),
         ];
-
-        // Merge base meta, specific attributes, and shared common fields (comment, class, required)
         return array_merge($baseMeta, $specific, $this->validateCommon($fieldId, $fieldData));
     }
 }

@@ -17,12 +17,12 @@ use DateTimeImmutable;
 /**
  * Class Datetime
  *
- * Validates temporal fields (date, time, or datetime combination) using strict ISO/24h standards.
+ * Validates date and time fields.
  */
 class Datetime extends AbstractFieldValidator
 {
     /**
-     * Supported internal formats mapped to validation regex rules.
+     * Supported formats with their regex rules.
      */
     private const FORMATS = [
         'datetime' => ['format' => 'Y-m-d H:i:s', 'regex' => '/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/'],
@@ -30,23 +30,25 @@ class Datetime extends AbstractFieldValidator
         'time'     => ['format' => 'H:i:s',       'regex' => '/^\d{2}:\d{2}:\d{2}$/'],
     ];
 
-    /**
-     * @inheritDoc
-     */
+    /** @inheritDoc */
     public function validate(string $fieldId, array $fieldData, array $baseMeta): array
     {
-        // 1. Determine temporal subtype (defaulting to combined datetime)
         $subType = 'datetime';
-        if (isset($fieldData['view_mode']) && is_string($fieldData['view_mode'])) {
-            $requestedMode = trim($fieldData['view_mode']);
-            if (array_key_exists($requestedMode, self::FORMATS)) {
-                $subType = $requestedMode;
+        if (isset($fieldData['view_mode'])) {
+            if (!is_string($fieldData['view_mode'])) {
+                throw new InvalidConfigException("Field 'view_mode' for temporal field '{$fieldId}' must be a strict string.");
             }
+
+            $requestedMode = trim($fieldData['view_mode']);
+            if (!array_key_exists($requestedMode, self::FORMATS)) {
+                $allowed = implode(', ', array_keys(self::FORMATS));
+                throw new InvalidConfigException("Unsupported view_mode '{$requestedMode}' in field '{$fieldId}'. Supported: {$allowed}.");
+            }
+            $subType = $requestedMode;
         }
 
         $config = self::FORMATS[$subType];
 
-        // 2. Validate 'default' parameter using strict format matching
         $default = '';
         if (isset($fieldData['default'])) {
             if (!is_string($fieldData['default'])) {
@@ -72,7 +74,7 @@ class Datetime extends AbstractFieldValidator
     }
 
     /**
-     * Enforces strict logical timestamp verification.
+     * Checks format and calendar validity.
      */
     private function isValidTimestamp(string $value, string $format, string $regex): bool
     {
@@ -81,6 +83,6 @@ class Datetime extends AbstractFieldValidator
         }
 
         $dateTime = DateTimeImmutable::createFromFormat($format, $value);
-        return $dateTime && $dateTime->format($format) === $value;
+        return $dateTime !== false && $dateTime->format($format) === $value;
     }
 }

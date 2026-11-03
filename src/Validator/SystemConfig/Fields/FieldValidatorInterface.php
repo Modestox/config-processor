@@ -16,18 +16,17 @@ use Modestox\ConfigProcessor\Exception\InvalidConfigException;
 /**
  * Interface FieldValidatorInterface
  *
- * Defines the contract for specific field type validation strategies.
+ * Contract for field type validators.
  */
 interface FieldValidatorInterface
 {
     /**
-     * Validates type-specific attributes and merges them with base metadata.
+     * Validates type-specific attributes.
      *
-     * @param string $fieldId The unique identifier of the field.
-     * @param array<string, mixed> $fieldData Raw configuration input data for the field.
-     * @param array<string, mixed> $baseMeta Already verified shared metadata (type, label, sort_order).
-     * @return array<string, mixed> Complete sanitized field configuration matrix.
-     * @throws InvalidConfigException If any type-specific validation rule is violated.
+     * @param array<string, mixed> $fieldData Raw field configuration.
+     * @param array<string, mixed> $baseMeta Verified shared metadata (type, label, sort_order).
+     * @return array<string, mixed>
+     * @throws InvalidConfigException
      */
     public function validate(string $fieldId, array $fieldData, array $baseMeta): array;
 }

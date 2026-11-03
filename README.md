@@ -2,9 +2,14 @@
 
 ![Tests](https://github.com/Modestox/config-processor/actions/workflows/phpunit.yml/badge.svg)
 
-A standalone PHP component designed for multi-level validation, sanitization, normalization, and sorting of hierarchical system configurations (e.g., application module settings, payment gateways, theme configurations, or plugins).
+A standalone PHP library that validates, normalizes and sorts hierarchical configuration arrays, in the spirit of Magento's `system.xml`: `Tabs -> Sections -> Groups -> Fields`.
 
-The architecture is built on a declarative principle of multi-level data grouping: `Tabs -> Sections -> Groups -> Fields`.
+You pass a raw array and a schema. You get back either a clean, fully populated array or an `InvalidConfigException` describing the first problem found.
+
+## Requirements
+
+- PHP 8.3 or newer
+- No runtime dependencies
 
 ## Installation
 
@@ -12,37 +17,22 @@ The architecture is built on a declarative principle of multi-level data groupin
 composer require modestox/config-processor
 ```
 
----
-
 ## Features
 
-- **PHP 8.3+** — Implemented strictly according to the modern language standards.
-- **Strict typing** — Native type safety enforced across all validators and configuration nodes.
-- **Deep validation** — Comprehensive evaluation of structural constraints, value boundaries, and formats.
-- **Recursive normalization** — Automated sanitization and fallback backfilling at every level of the tree.
-- **Automatic sorting** — Automatically sorts configuration nodes by `sort_order`.
-- **Dependency-aware fields** — Supports conditional visibility constraints between fields inside the same group.
-- **Dynamic field registry** — Allows runtime registration or overriding of custom field type strategies.
-- **Non-destructive processing** — The input configuration array is never modified or passed by reference.
-- **DI-container friendly** — Built with low-coupling architecture ready for dependency injection environments.
-
----
+- **Strict validation** — values are never coerced: `"10"` is not accepted where an integer is expected.
+- **Normalization** — strings are trimmed, missing properties are backfilled with defaults at every level.
+- **Sorting** — nodes are ordered by `sort_order` (stable, so equal values keep their declaration order).
+- **Field dependencies** — `depends` is checked against sibling fields, including self-references and cycles.
+- **Extensible** — custom field types can be registered at runtime.
+- **Side-effect free** — the input array is never modified; the library has no I/O.
 
 ## Why?
 
-Most configuration systems mix validation, storage and, UI rendering into a single layer.
-
-Configuration Processor focuses exclusively on configuration structure validation, normalization and consistency, allowing adapters and applications to handle rendering and persistence independently.
-
----
+Configuration systems often mix validation, storage and rendering in one layer. This library only validates and normalizes the structure. Rendering and persistence are left to adapters built on top of the normalized output.
 
 ## Supported Schemas
 
-The processor supports multiple configuration layouts depending on the application requirements.
-
-### System Configuration
-
-Full hierarchical configuration structure:
+### System Configuration (`SystemConfig`)
 
 ```text
 Tabs
@@ -51,48 +41,22 @@ Tabs
         └── Fields
 ```
 
-Designed for large applications, CMS platforms, administration panels, and modular systems.
+For applications, CMS platforms and admin panels with a full settings tree.
 
-### Grouped Configuration
-
-Lightweight standalone configuration structure:
+### Grouped Configuration (`GroupedConfig`)
 
 ```text
 Groups
 └── Fields
 ```
 
-Designed for isolated plugins, widgets, reusable packages, and small modules that do not require tabs or sections.
-
----
-
-
-### Configuration Tree Example
-
-Example of a typical hierarchical configuration structure:
-
-```text
-Tabs
-└── General (Tab)
-    └── API Integration (Section)
-        ├── Authentication (Group)
-        │   ├── enable_api (Field)
-        │   └── api_secret (Field)
-        │
-        └── Security (Group)
-```
+For isolated plugins, widgets and small modules that need neither tabs nor sections. The `groups` key is required.
 
 ## Quick Start
 
-### 1. Installation
+### 1. Raw configuration
 
-```bash
-composer require modestox/config-processor
-```
-
-### 2. Raw Configuration Example
-
-The component accepts a raw multi-dimensional array compiled from module configuration files. Note the redundant whitespaces in string values and the unsorted `sort_order` properties:
+Note the redundant whitespace and the unsorted `sort_order` values:
 
 ```php
 $rawInput = [
@@ -102,9 +66,9 @@ $rawInput = [
             'sort_order' => 20,
         ],
         'main_tab' => [
-            'label'      => '  General Settings  ', // Contains surrounding whitespaces
-            'sort_order' => 10, // Should be sorted first
-        ]
+            'label'      => '  General Settings  ', // Surrounding whitespace is trimmed
+            'sort_order' => 10,                     // Sorted first
+        ],
     ],
     'sections' => [
         'api_integration' => [
@@ -113,63 +77,58 @@ $rawInput = [
             'sort_order' => 5,
             'groups'     => [
                 'auth_group' => [
-                    'label'      => 'Authentication Keys',
-                    'fields'     => [
+                    'label'  => 'Authentication Keys',
+                    'fields' => [
                         'enable_api' => [
-                            'type' => 'yes_no', // Automatically generates Yes/No options
+                            'type' => 'yes_no', // Yes/No options are generated automatically
                         ],
                         'api_secret' => [
-                            'type'       => 'password',
-                            'default'    => '   secret-token-key   ', // Surrounding whitespaces will be trimmed
-                            'depends'    => [
-                                'enable_api' => 1 // Only displayed if API is enabled
-                            ]
-                        ]
-                    ]
-                ]
-            ]
-        ]
-    ]
+                            'type'    => 'password',
+                            'default' => '   secret-token-key   ',
+                            'depends' => [
+                                'enable_api' => 1, // Shown only when API is enabled
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        ],
+    ],
 ];
 ```
 
-### 3. Processing Configuration
-
-Pass the input data array and the validation schema instance to the orchestrator:
+### 2. Processing
 
 ```php
 use Modestox\ConfigProcessor\Processor;
 use Modestox\ConfigProcessor\Schema\SystemConfig;
 
 $processor = new Processor();
+
+// For isolated plugin structures use GroupedConfig instead:
+// $schema = new \Modestox\ConfigProcessor\Schema\GroupedConfig();
 $schema = new SystemConfig();
 
-// OR for isolated plugin structures:
-// $schema = new \Modestox\ConfigProcessor\Schema\GroupedConfig();
-
-/** @var array $cleanConfig */
 $cleanConfig = $processor->process($rawInput, $schema);
 ```
 
-### 4. Output of the `process()` Method
-
-The method returns a **sanitized associative array (`array`)**, where string parameters are normalized, missing properties are populated with system defaults, and elements across all levels are strictly sorted by their `sort_order` values:
+### 3. Result
 
 ```php
 [
     'tabs' => [
         'main_tab' => [
-            'label'      => 'General Settings', // Trimmed and sorted to the first position
+            'label'      => 'General Settings',
             'sort_order' => 10,
             'class'      => '',
-            'icon'       => ''
+            'icon'       => '',
         ],
         'payment_tab' => [
             'label'      => 'Sales & Payments',
             'sort_order' => 20,
             'class'      => '',
-            'icon'       => ''
-        ]
+            'icon'       => '',
+        ],
     ],
     'sections' => [
         'api_integration' => [
@@ -187,120 +146,119 @@ The method returns a **sanitized associative array (`array`)**, where string par
                             'type'       => 'yes_no',
                             'label'      => 'enable_api',
                             'sort_order' => 0,
-                            'options'    => [0 => 'No', 1 => 'Yes'], // Generated automatically
+                            'options'    => [0 => 'No', 1 => 'Yes'],
                             'default'    => 0,
                             'comment'    => '',
                             'class'      => '',
                             'validation' => [],
                             'required'   => false,
-                            'depends'    => null
+                            'provider'   => '',
+                            'depends'    => null,
                         ],
                         'api_secret' => [
                             'type'       => 'password',
                             'label'      => 'api_secret',
                             'sort_order' => 0,
-                            'default'    => 'secret-token-key', // Trimmed
+                            'default'    => 'secret-token-key',
                             'comment'    => '',
                             'class'      => '',
                             'validation' => [],
                             'required'   => false,
-                            'depends'    => ['enable_api' => 1]
-                        ]
-                    ]
-                ]
-            ]
-        ]
-    ]
+                            'provider'   => '',
+                            'depends'    => ['enable_api' => 1],
+                        ],
+                    ],
+                ],
+            ],
+        ],
+    ],
 ]
 ```
 
----
+## Structure Reference
+
+| Level | Property | Type | Notes |
+| :--- | :--- | :--- | :--- |
+| Tab | `label` | string | Defaults to the tab id. |
+| | `sort_order` | int | Defaults to `0`. |
+| | `class`, `icon` | string | Default to `''`. |
+| Section | `tab` | string | **Required.** Must reference a defined tab. |
+| | `label`, `sort_order`, `class`, `icon` | | As for tabs. |
+| | `groups` | array | Defaults to `[]`. |
+| Group | `label`, `sort_order` | | As for tabs. |
+| | `fields` | array | Defaults to `[]`. |
+| Field | `type` | string | **Required.** See [field types](fields.md). |
+
+**Identifiers.** Tab, section, group and field ids (the array keys) must match `^[a-z0-9_]+$`. Ids made only of digits (e.g. `'123'`) are not supported: PHP turns such keys into integers.
 
 ## Validation Errors
 
-When an invalid structure is detected or field type rules are violated, the processor throws a domain-specific `InvalidConfigException`.
-
-**Example of an invalid field configuration:**
+The first violation stops processing and throws `Modestox\ConfigProcessor\Exception\InvalidConfigException`. The message names the offending node, but not its full path in the tree.
 
 ```php
 'cache_timeout' => [
     'type' => 'number',
     'min'  => 100,
-    'max'  => 10, // Error: max is less than min
+    'max'  => 10, // max is less than min
 ]
 ```
-
-**Execution Result:**
 
 ```text
 Modestox\ConfigProcessor\Exception\InvalidConfigException:
 Field 'max' cannot be less than 'min' for number field 'cache_timeout'.
 ```
 
----
+Programmer errors (for example registering an invalid custom validator) throw `\InvalidArgumentException` instead.
 
-## Typical Use Cases
+## Behavior Notes
 
-The component is framework-agnostic and can serve as the configuration foundation for:
+- **Unknown keys are ignored.** A misspelled property (`'defualt'`) or root key (`'tab'` instead of `'tabs'`) is dropped silently and does not produce an error.
+- **`null` means "not set".** `'label' => null` is treated like a missing label.
+- **Output is not escaped.** Labels, comments and `infoblock` text are returned as given. Escape them when rendering.
+- **`depends`** works only between fields of the same group. It does not check that the expected value exists in the parent field.
+- **`provider`** is stored as a string. It is neither validated as a class name nor resolved.
 
-- CMS settings systems
-- WordPress plugins and themes
-- Laravel administration panels
-- Modular applications
-- Payment gateway configuration
-- Feature flag management
-- Internal developer tools
-- Dynamic settings generators
+## Supported Field Types
 
----
-
-## Supported Field Types Summary
-
-The component natively supports a wide range of standard data types and UI hints:
-
-| Field Type (`type`) | Behavior & Fallbacks |
+| Type (`type`) | Behavior |
 | :--- | :--- |
-| **`text`** / **`textarea`** | Standard text data. All values are automatically sanitized using `trim()`. |
-| **`password`** | Masked input field for sensitive credentials. Values are automatically trimmed. |
-| **`boolean`** | Enforces strict boolean (`true`/`false`) conversion and fallback values. |
-| **`yes_no`** | Fast binary dropdown. Automatically injects strict options: `[0 => 'No', 1 => 'Yes']`. |
-| **`number`** | Enforces strict numeric types (int/float) and logical validation boundaries (`max >= min`). |
-| **`datetime`** | Strictly validates temporal values against ISO standards (`date`, `time`, or `datetime`). |
-| **`dynamic_rows`** | Two-dimensional table matrix. Automatically normalizes and backfills nested cell structures. |
-| **`file`** / **`image`** | Declarative mapping for paths and extensions handled by the application runtime. |
-| **`select`** / **`radio`** | Single choice options picker. Strictly validates default keys against predefined scope. |
-| **`multiselect`** / **`checkbox`**| Multiple choice options picker. Enforces default data to be an array of valid keys. |
-| **`infoblock`** | Non-data text placeholder. Defines how the content should be interpreted by the consuming application. |
+| `text`, `textarea` | Text values; `default` and `placeholder` are trimmed. |
+| `password` | Text value; `default` is trimmed. |
+| `boolean` | `default` must be a real `true`/`false`; no conversion is performed. |
+| `yes_no` | Select with fixed options `[0 => 'No', 1 => 'Yes']`. |
+| `number` | `int`/`float` only; finite; `min <= default <= max`. |
+| `datetime` | `datetime` (`Y-m-d H:i:s`), `date` (`Y-m-d`) or `time` (`H:i:s`) with real calendar validation. |
+| `dynamic_rows` | Table with declared columns; default rows are normalized to the column set. |
+| `file`, `image` | Declarative `upload_dir` and `extensions`; enforced by the consuming application. |
+| `select`, `radio` | Single choice; `default` must be one of the options. |
+| `multiselect`, `checkbox` | Multiple choice; `default` is a list of valid option keys. |
+| `infoblock` | Non-data notice with `text` or `html` format. |
 
-> **Full Property Documentation:** A comprehensive breakdown of each field type, its constraints, inheritance, and validation rules can be found in the separate reference file: [Detailed Field Specifications](fields.md).
+Full property reference: [fields.md](fields.md).
 
----
+## Custom Field Types
 
-## Architecture Philosophy
-
-Configuration Processor intentionally focuses only on:
-
-- Validation
-- Normalization
-- Sanitization
-- Structural consistency
-
-The component does not render user interfaces and does not persist user data.
-
-UI rendering, storage layers, and framework integrations should be implemented by adapters built on top of the normalized configuration output.
-
-This separation keeps the core library framework-agnostic, portable, predictable, and easy to integrate into different ecosystems.
-
----
-
-## Component Extension (Registry)
-
-The component supports runtime registration of new field types without altering the core codebase, allowing it to seamlessly integrate with your application's DI containers:
+Implement `FieldValidatorInterface` and register it. Type names must match `^[a-z0-9_]+$`.
 
 ```php
+use Modestox\ConfigProcessor\Schema\SystemConfig;
 use Modestox\ConfigProcessor\Validator\SystemConfig\Fields;
+use Modestox\ConfigProcessor\Validator\SystemConfig\Groups;
+use Modestox\ConfigProcessor\Validator\SystemConfig\Sections;
 
-$fieldsValidator = new Fields();
-// Register a custom validation strategy for a new 'colorpicker' type
-$fieldsValidator->registerType('colorpicker', new MyCustomColorPickerValidator());
+$fields = new Fields();
+$fields->registerType('colorpicker', new MyColorPickerValidator());
+
+$schema = new SystemConfig(sections: new Sections(new Groups($fields)));
 ```
+
+## Development
+
+```bash
+composer install
+composer test
+```
+
+## License
+
+MIT. See [LICENSE](LICENSE).
