@@ -5,3 +5,5 @@
 /.osp/
 .phpunit.result.cache
 composer.lock
+.ddev/
+project_context_dump.txt
