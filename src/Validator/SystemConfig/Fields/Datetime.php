@@ -31,6 +31,12 @@ class Datetime extends AbstractFieldValidator
     ];
 
     /** @inheritDoc */
+    protected function specificKeys(): array
+    {
+        return ['view_mode', 'default'];
+    }
+
+    /** @inheritDoc */
     public function validate(string $fieldId, array $fieldData, array $baseMeta): array
     {
         $subType = 'datetime';

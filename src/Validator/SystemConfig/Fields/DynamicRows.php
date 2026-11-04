@@ -21,6 +21,12 @@ use Modestox\ConfigProcessor\Exception\InvalidConfigException;
 class DynamicRows extends AbstractFieldValidator
 {
     /** @inheritDoc */
+    protected function specificKeys(): array
+    {
+        return ['columns', 'default'];
+    }
+
+    /** @inheritDoc */
     public function validate(string $fieldId, array $fieldData, array $baseMeta): array
     {
         if (!isset($fieldData['columns']) || !is_array($fieldData['columns'])) {

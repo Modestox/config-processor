@@ -13,7 +13,6 @@ namespace Modestox\ConfigProcessor\Validator\SystemConfig;
 
 use InvalidArgumentException;
 use Modestox\ConfigProcessor\Exception\InvalidConfigException;
-use Modestox\ConfigProcessor\Validator\Identifier;
 use Modestox\ConfigProcessor\Validator\SystemConfig\Fields\Boolean;
 use Modestox\ConfigProcessor\Validator\SystemConfig\Fields\Checkbox;
 use Modestox\ConfigProcessor\Validator\SystemConfig\Fields\Datetime;
@@ -30,22 +29,24 @@ use Modestox\ConfigProcessor\Validator\SystemConfig\Fields\Select;
 use Modestox\ConfigProcessor\Validator\SystemConfig\Fields\Text;
 use Modestox\ConfigProcessor\Validator\SystemConfig\Fields\Textarea;
 use Modestox\ConfigProcessor\Validator\SystemConfig\Fields\YesNo;
-use Modestox\ConfigProcessor\Validator\ValidatorInterface;
 
 /**
  * Class Fields
  *
  * Validates fields and resolves type strategies and dependencies.
  */
-class Fields implements ValidatorInterface
+class Fields extends AbstractNodeValidator
 {
     private const TYPE_PATTERN = '/^[a-z0-9_]+$/D';
+
+    /** Field types whose value is one of the declared options. */
+    private const OPTION_TYPES = ['select', 'radio', 'yes_no'];
 
     /** @var array<string, FieldValidatorInterface> */
     private array $validators;
 
     /**
-     * Fields constructor.
+     * Creates the validator.
      *
      * @param array<string, FieldValidatorInterface> $validators Custom validators extending or overriding defaults.
      * @throws InvalidArgumentException
@@ -99,77 +100,146 @@ class Fields implements ValidatorInterface
     }
 
     /** @inheritDoc */
-    public function validate(array $fields, array $context = []): array
+    protected function entity(): string
     {
-        $cleanFields = [];
+        return 'field';
+    }
 
-        foreach ($fields as $fieldId => $fieldData) {
-            $fieldId = Identifier::assert($fieldId, 'field');
-
-            if (!is_array($fieldData)) {
-                throw new InvalidConfigException("Configuration for field '{$fieldId}' must be an array.");
-            }
-
-            if (!isset($fieldData['type']) || !is_string($fieldData['type'])) {
-                throw new InvalidConfigException("Field '{$fieldId}' must have a valid 'type' string parameter.");
-            }
-
-            $type = trim($fieldData['type']);
-
-            if (!isset($this->validators[$type])) {
-                $allowed = implode(', ', array_keys($this->validators));
-                throw new InvalidConfigException("Unsupported type '{$type}' in field '{$fieldId}'. Supported: {$allowed}.");
-            }
-
-            $baseMeta = [
-                'type'       => $type,
-                'label'      => $this->validateLabel($fieldId, $fieldData),
-                'sort_order' => $this->validateSortOrder($fieldData, $fieldId),
-            ];
-
-            $cleanFields[$fieldId] = $this->validators[$type]->validate($fieldId, $fieldData, $baseMeta);
+    /** @inheritDoc */
+    protected function validateNode(string $id, array $data, array $context): array
+    {
+        if (!isset($data['type']) || !is_string($data['type'])) {
+            throw new InvalidConfigException("Field '{$id}' must have a valid 'type' string parameter.");
         }
 
-        // Dependencies are resolved after all fields are known, so declaration order does not matter.
+        $type = trim($data['type']);
+
+        if (!isset($this->validators[$type])) {
+            $allowed = implode(', ', array_keys($this->validators));
+            throw new InvalidConfigException("Unsupported type '{$type}' in field '{$id}'. Supported: {$allowed}.");
+        }
+
+        $validator = $this->validators[$type];
+
+        $this->assertKnownKeys($data, $validator->allowedKeys(), $id);
+
+        $baseMeta = [
+            'type'       => $type,
+            'label'      => $this->validateLabel($data, $id),
+            'sort_order' => $this->validateSortOrder($data, $id),
+        ];
+
+        $clean = $validator->validate($id, $data, $baseMeta);
+        $clean['depends'] = $this->validateDependsShape($data, $id);
+
+        return $clean;
+    }
+
+    /**
+     * Validates the shape of 'depends'; parents are checked later.
+     *
+     * @param array<string, mixed> $data
+     * @return array<string, scalar>|null
+     * @throws InvalidConfigException
+     */
+    private function validateDependsShape(array $data, string $id): ?array
+    {
+        if (!isset($data['depends'])) {
+            return null;
+        }
+        if (!is_array($data['depends'])) {
+            throw new InvalidConfigException("The 'depends' parameter for field '{$id}' must be an array.");
+        }
+        if ($data['depends'] === []) {
+            throw new InvalidConfigException("The 'depends' array for field '{$id}' cannot be empty.");
+        }
+
+        $depends = [];
+        foreach ($data['depends'] as $parentId => $expected) {
+            if (!is_scalar($expected)) {
+                throw new InvalidConfigException("The dependency target value for field '{$id}' must be a strict scalar value.");
+            }
+            $depends[(string)$parentId] = $expected;
+        }
+
+        return $depends;
+    }
+
+    /**
+     * @inheritDoc
+     *
+     * Checks parents, expected values and cycles of 'depends'.
+     */
+    protected function validateRelations(array $nodes): array
+    {
         $graph = [];
-        foreach ($fields as $fieldId => $fieldData) {
-            if (!isset($fieldData['depends'])) {
-                $cleanFields[$fieldId]['depends'] = null;
+
+        foreach ($nodes as $fieldId => $field) {
+            if ($field['depends'] === null) {
                 continue;
             }
 
-            if (!is_array($fieldData['depends'])) {
-                throw new InvalidConfigException("The 'depends' parameter for field '{$fieldId}' must be an array.");
-            }
-            if ($fieldData['depends'] === []) {
-                throw new InvalidConfigException("The 'depends' array for field '{$fieldId}' cannot be empty.");
-            }
+            try {
+                foreach ($field['depends'] as $parentId => $expected) {
+                    $parentId = (string)$parentId;
 
-            $cleanDepends = [];
-            foreach ($fieldData['depends'] as $parentFieldId => $expectedValue) {
-                $parentFieldId = (string)$parentFieldId;
+                    if (!array_key_exists($parentId, $nodes)) {
+                        throw new InvalidConfigException(
+                            "Field '{$fieldId}' depends on an undefined parent field '{$parentId}' within the same group.",
+                        );
+                    }
 
-                if (!array_key_exists($parentFieldId, $cleanFields)) {
-                    throw new InvalidConfigException(
-                        "Field '{$fieldId}' depends on an undefined parent field '{$parentFieldId}' within the same group.",
-                    );
+                    $this->assertExpectedValue($fieldId, $parentId, $nodes[$parentId], $expected);
                 }
-                if (!is_scalar($expectedValue)) {
-                    throw new InvalidConfigException("The dependency target value for field '{$fieldId}' must be a strict scalar value.");
-                }
-
-                $cleanDepends[$parentFieldId] = $expectedValue;
+            } catch (InvalidConfigException $e) {
+                throw $e->prependPath((string)$fieldId);
             }
 
-            $cleanFields[$fieldId]['depends'] = $cleanDepends;
-            $graph[$fieldId] = array_map('strval', array_keys($cleanDepends));
+            $graph[$fieldId] = array_map('strval', array_keys($field['depends']));
         }
 
         $this->assertNoCircularDependencies($graph);
 
-        uasort($cleanFields, fn(array $a, array $b): int => $a['sort_order'] <=> $b['sort_order']);
+        return $nodes;
+    }
 
-        return $cleanFields;
+    /**
+     * Checks that the expected value makes sense for the parent field.
+     *
+     * @param array<string, mixed> $parent Clean parent field.
+     * @throws InvalidConfigException
+     */
+    private function assertExpectedValue(string $fieldId, string $parentId, array $parent, mixed $expected): void
+    {
+        $type = $parent['type'];
+        $shown = json_encode($expected);
+
+        if ($type === 'infoblock') {
+            throw new InvalidConfigException("Field '{$fieldId}' cannot depend on infoblock '{$parentId}': it holds no value.");
+        }
+
+        if (in_array($type, self::OPTION_TYPES, true) && is_array($parent['options'] ?? null)) {
+            $isKey = (is_int($expected) || is_string($expected)) && array_key_exists($expected, $parent['options']);
+            if (!$isKey) {
+                $options = implode(', ', array_keys($parent['options']));
+                throw new InvalidConfigException(
+                    "Field '{$fieldId}' expects the value {$shown} from '{$parentId}', which is not one of its options ({$options}).",
+                );
+            }
+            return;
+        }
+
+        if ($type === 'boolean' && !is_bool($expected)) {
+            throw new InvalidConfigException(
+                "Field '{$fieldId}' expects the value {$shown} from boolean field '{$parentId}'; use true or false.",
+            );
+        }
+
+        if ($type === 'number' && !is_int($expected) && !is_float($expected)) {
+            throw new InvalidConfigException(
+                "Field '{$fieldId}' expects the value {$shown} from number field '{$parentId}'; use an integer or a float.",
+            );
+        }
     }
 
     /**
@@ -217,33 +287,5 @@ class Fields implements ValidatorInterface
         }
 
         $state[$fieldId] = 2;
-    }
-
-    /**
-     * Validates the field label.
-     */
-    private function validateLabel(string $fieldId, array $data): string
-    {
-        if (isset($data['label'])) {
-            if (!is_string($data['label'])) {
-                throw new InvalidConfigException("Field 'label' for '{$fieldId}' must be a strict string.");
-            }
-            return trim($data['label']) !== '' ? trim($data['label']) : $fieldId;
-        }
-        return $fieldId;
-    }
-
-    /**
-     * Validates the field sort order.
-     */
-    private function validateSortOrder(array $data, string $fieldId): int
-    {
-        if (isset($data['sort_order'])) {
-            if (!is_int($data['sort_order'])) {
-                throw new InvalidConfigException("Field 'sort_order' for '{$fieldId}' must be a strict integer.");
-            }
-            return $data['sort_order'];
-        }
-        return 0;
     }
 }

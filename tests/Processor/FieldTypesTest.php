@@ -54,15 +54,13 @@ class FieldTypesTest extends TestCase
         ];
     }
 
-    /** Text and files apply automatic trimming successfully. */
-    public function testTextAndFilesApplyAutomaticTrimmingSuccessfully(): void
+    /** Text field applies automatic trimming. */
+    public function testTextFieldAppliesAutomaticTrimming(): void
     {
         $payload = $this->wrapField([
             'type'        => 'text',
             'placeholder' => '   Spaced Placeholder   ',
             'comment'     => '   Spaced Comment   ',
-            'upload_dir'  => '   assets/uploads   ', // For testing file inheritance behavior
-            'extensions'  => '   png,jpg   ',
         ]);
 
         $clean = $this->processor->process($payload, $this->schema);
@@ -70,6 +68,22 @@ class FieldTypesTest extends TestCase
 
         $this->assertSame('Spaced Placeholder', $field['placeholder']);
         $this->assertSame('Spaced Comment', $field['comment']);
+    }
+
+    /** Image field applies automatic trimming. */
+    public function testImageFieldAppliesAutomaticTrimming(): void
+    {
+        $payload = $this->wrapField([
+            'type'       => 'image',
+            'upload_dir' => '   assets/uploads   ',
+            'extensions' => '   png,jpg   ',
+        ]);
+
+        $clean = $this->processor->process($payload, $this->schema);
+        $field = $clean['sections']['main_section']['groups']['main_group']['fields']['target_field'];
+
+        $this->assertSame('assets/uploads', $field['upload_dir']);
+        $this->assertSame('png,jpg', $field['extensions']);
     }
 
     /** Yes no field injects standard options matrix automatically. */

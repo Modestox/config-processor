@@ -12,6 +12,9 @@ declare(strict_types=1);
 namespace Modestox\ConfigProcessor\Schema;
 
 use Modestox\ConfigProcessor\Exception\InvalidConfigException;
+use Modestox\ConfigProcessor\Validator\Keys;
+use Modestox\ConfigProcessor\Validator\SystemConfig\Fields;
+use Modestox\ConfigProcessor\Validator\SystemConfig\Fields\FieldValidatorInterface;
 use Modestox\ConfigProcessor\Validator\SystemConfig\Groups;
 
 /**
@@ -31,6 +34,16 @@ class GroupedConfig implements SchemaInterface
         $this->groups = $groups ?? new Groups();
     }
 
+    /**
+     * Creates the schema with additional or overridden field types.
+     *
+     * @param array<string, FieldValidatorInterface> $validators
+     */
+    public static function withFieldTypes(array $validators): self
+    {
+        return new self(new Groups(new Fields($validators)));
+    }
+
     /** @inheritDoc */
     public function validate(array $dirtyData): array
     {
@@ -42,6 +55,14 @@ class GroupedConfig implements SchemaInterface
             throw new InvalidConfigException("The 'groups' section must be an array.");
         }
 
-        return ['groups' => $this->groups->validate($dirtyData['groups'])];
+        Keys::assertKnown($dirtyData, ['groups'], 'the configuration root');
+
+        try {
+            $groups = $this->groups->validate($dirtyData['groups']);
+        } catch (InvalidConfigException $e) {
+            throw $e->prependPath('groups');
+        }
+
+        return array_merge(['groups' => $groups], Keys::extensions($dirtyData));
     }
 }

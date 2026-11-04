@@ -19,9 +19,15 @@ namespace Modestox\ConfigProcessor\Validator\SystemConfig\Fields;
 class YesNo extends Select
 {
     /** @inheritDoc */
+    protected function specificKeys(): array
+    {
+        return ['default'];
+    }
+
+    /** @inheritDoc */
     public function validate(string $fieldId, array $fieldData, array $baseMeta): array
     {
-        // Options are fixed; any user-supplied options are overridden.
+        // Options are fixed.
         $fieldData['options'] = [
             0 => 'No',
             1 => 'Yes',

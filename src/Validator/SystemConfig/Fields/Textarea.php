@@ -19,6 +19,12 @@ namespace Modestox\ConfigProcessor\Validator\SystemConfig\Fields;
 class Textarea extends AbstractFieldValidator
 {
     /** @inheritDoc */
+    protected function specificKeys(): array
+    {
+        return ['default', 'placeholder'];
+    }
+
+    /** @inheritDoc */
     public function validate(string $fieldId, array $fieldData, array $baseMeta): array
     {
         $specific = [

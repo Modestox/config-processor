@@ -23,6 +23,12 @@ class InfoBlock extends AbstractFieldValidator
     private const ALLOWED_FORMATS = ['text', 'html'];
 
     /** @inheritDoc */
+    protected function specificKeys(): array
+    {
+        return ['text', 'format'];
+    }
+
+    /** @inheritDoc */
     public function validate(string $fieldId, array $fieldData, array $baseMeta): array
     {
         if (!isset($fieldData['text'])) {

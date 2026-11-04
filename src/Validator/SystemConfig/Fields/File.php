@@ -21,6 +21,12 @@ use Modestox\ConfigProcessor\Exception\InvalidConfigException;
 class File extends AbstractFieldValidator
 {
     /** @inheritDoc */
+    protected function specificKeys(): array
+    {
+        return ['upload_dir', 'extensions'];
+    }
+
+    /** @inheritDoc */
     public function validate(string $fieldId, array $fieldData, array $baseMeta): array
     {
         $uploadDir = $this->validateString($fieldData, 'upload_dir', $fieldId, '');

@@ -11,75 +11,29 @@ declare(strict_types=1);
 
 namespace Modestox\ConfigProcessor\Validator\SystemConfig;
 
-use Modestox\ConfigProcessor\Exception\InvalidConfigException;
-use Modestox\ConfigProcessor\Validator\Identifier;
-use Modestox\ConfigProcessor\Validator\ValidatorInterface;
-
 /**
  * Class Tabs
  *
  * Validates top-level tabs.
  */
-class Tabs implements ValidatorInterface
+class Tabs extends AbstractNodeValidator
 {
     /** @inheritDoc */
-    public function validate(array $tabs, array $context = []): array
+    protected function entity(): string
     {
-        $cleanTabs = [];
+        return 'tab';
+    }
 
-        foreach ($tabs as $tabId => $tabData) {
-            $tabId = Identifier::assert($tabId, 'tab');
+    /** @inheritDoc */
+    protected function validateNode(string $id, array $data, array $context): array
+    {
+        $this->assertKnownKeys($data, ['label', 'sort_order', 'class', 'icon'], $id);
 
-            if (!is_array($tabData)) {
-                throw new InvalidConfigException("Configuration for tab '{$tabId}' must be an array.");
-            }
-
-            $label = $tabId;
-            if (isset($tabData['label'])) {
-                if (!is_string($tabData['label'])) {
-                    throw new InvalidConfigException("Field 'label' for tab '{$tabId}' must be a strict string.");
-                }
-
-                $trimmedLabel = trim($tabData['label']);
-                if ($trimmedLabel !== '') {
-                    $label = $trimmedLabel;
-                }
-            }
-
-            $sortOrder = 0;
-            if (isset($tabData['sort_order'])) {
-                if (!is_int($tabData['sort_order'])) {
-                    throw new InvalidConfigException("Field 'sort_order' for tab '{$tabId}' must be a strict integer.");
-                }
-                $sortOrder = $tabData['sort_order'];
-            }
-
-            $class = '';
-            if (isset($tabData['class'])) {
-                if (!is_string($tabData['class'])) {
-                    throw new InvalidConfigException("Field 'class' for tab '{$tabId}' must be a valid string.");
-                }
-                $class = trim($tabData['class']);
-            }
-
-            $icon = '';
-            if (isset($tabData['icon'])) {
-                if (!is_string($tabData['icon'])) {
-                    throw new InvalidConfigException("Field 'icon' for tab '{$tabId}' must be a valid string layout modifier.");
-                }
-                $icon = trim($tabData['icon']);
-            }
-
-            $cleanTabs[$tabId] = [
-                'label'      => $label,
-                'sort_order' => $sortOrder,
-                'class'      => $class,
-                'icon'       => $icon,
-            ];
-        }
-
-        uasort($cleanTabs, fn(array $a, array $b): int => $a['sort_order'] <=> $b['sort_order']);
-
-        return $cleanTabs;
+        return [
+            'label'      => $this->validateLabel($data, $id),
+            'sort_order' => $this->validateSortOrder($data, $id),
+            'class'      => $this->validateOptionalString($data, 'class', $id),
+            'icon'       => $this->validateOptionalString($data, 'icon', $id, 'a valid string layout modifier'),
+        ];
     }
 }

@@ -21,6 +21,12 @@ use Modestox\ConfigProcessor\Exception\InvalidConfigException;
 class Number extends AbstractFieldValidator
 {
     /** @inheritDoc */
+    protected function specificKeys(): array
+    {
+        return ['default', 'min', 'max'];
+    }
+
+    /** @inheritDoc */
     public function validate(string $fieldId, array $fieldData, array $baseMeta): array
     {
         $min = $this->validateNumber($fieldData, 'min', $fieldId);

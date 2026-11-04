@@ -20,6 +20,53 @@ use Modestox\ConfigProcessor\Exception\InvalidConfigException;
  */
 abstract class AbstractFieldValidator implements FieldValidatorInterface
 {
+    private const COMMON_KEYS = [
+        'type', 'label', 'sort_order', 'depends', 'comment', 'class', 'validation', 'required', 'provider',
+    ];
+
+    /** @inheritDoc */
+    final public function allowedKeys(): array
+    {
+        return array_merge(self::COMMON_KEYS, $this->specificKeys());
+    }
+
+    /**
+     * Returns the keys specific to this field type.
+     *
+     * @return list<string>
+     */
+    protected function specificKeys(): array
+    {
+        return [];
+    }
+
+    /**
+     * Validates the non-empty 'options' map of choice fields.
+     *
+     * @param array<string, mixed> $fieldData
+     * @return array<int|string, string>
+     * @throws InvalidConfigException
+     */
+    protected function validateOptions(array $fieldData, string $fieldId, string $type): array
+    {
+        if (!isset($fieldData['options']) || !is_array($fieldData['options']) || $fieldData['options'] === []) {
+            throw new InvalidConfigException("Field '{$fieldId}' of type '{$type}' must contain a non-empty array of 'options'.");
+        }
+
+        $options = [];
+        foreach ($fieldData['options'] as $value => $label) {
+            if (!is_string($value) && !is_int($value)) {
+                throw new InvalidConfigException("Option keys for {$type} field '{$fieldId}' must be strict strings or integers.");
+            }
+            if (!is_string($label)) {
+                throw new InvalidConfigException("Option display text for value '{$value}' in field '{$fieldId}' must be a valid string.");
+            }
+            $options[$value] = trim($label);
+        }
+
+        return $options;
+    }
+
     /**
      * Validates common field attributes.
      */

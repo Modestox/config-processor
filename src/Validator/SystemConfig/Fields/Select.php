@@ -21,38 +21,40 @@ use Modestox\ConfigProcessor\Exception\InvalidConfigException;
 class Select extends AbstractFieldValidator
 {
     /** @inheritDoc */
+    protected function specificKeys(): array
+    {
+        return ['options', 'default'];
+    }
+
+    /**
+     * @inheritDoc
+     */
     public function validate(string $fieldId, array $fieldData, array $baseMeta): array
     {
-        if (!isset($fieldData['options']) || !is_array($fieldData['options']) || $fieldData['options'] === []) {
-            throw new InvalidConfigException("Field '{$fieldId}' of type 'select' must contain a non-empty array of 'options'.");
-        }
+        $type = (string)($baseMeta['type'] ?? 'select');
+        $options = $this->validateOptions($fieldData, $fieldId, $type);
 
-        $cleanOptions = [];
-        foreach ($fieldData['options'] as $value => $label) {
-            if (!is_string($value) && !is_int($value)) {
-                throw new InvalidConfigException("Option keys for select field '{$fieldId}' must be strict strings or integers.");
-            }
-            if (!is_string($label)) {
-                throw new InvalidConfigException("Option display text for value '{$value}' in field '{$fieldId}' must be a valid string.");
-            }
-            $cleanOptions[$value] = trim($label);
-        }
+        // Without an explicit default the first option is selected.
+        $default = array_key_first($options);
 
-        $default = array_key_first($cleanOptions);
         if (isset($fieldData['default'])) {
-            if (!is_string($fieldData['default']) && !is_int($fieldData['default'])) {
-                throw new InvalidConfigException("Field 'default' for select field '{$fieldId}' must be a strict string or integer.");
-            }
+            $requested = $fieldData['default'];
 
-            if (!array_key_exists($fieldData['default'], $cleanOptions)) {
+            if (!is_string($requested) && !is_int($requested)) {
+                throw new InvalidConfigException("Field 'default' for {$type} field '{$fieldId}' must be a strict string or integer.");
+            }
+            if (!array_key_exists($requested, $options)) {
                 throw new InvalidConfigException(
-                    "The default value '{$fieldData['default']}' for field '{$fieldId}' does not exist within the permitted options scope.",
+                    "The default value '{$requested}' for field '{$fieldId}' does not exist within the permitted options scope.",
                 );
             }
-            $default = $fieldData['default'];
+
+            // PHP turns numeric string keys into integers; the default follows the same rule.
+            $default = array_key_first([$requested => true]);
         }
+
         return array_merge($baseMeta, [
-            'options' => $cleanOptions,
+            'options' => $options,
             'default' => $default,
         ], $this->validateCommon($fieldId, $fieldData));
     }

@@ -19,6 +19,12 @@ namespace Modestox\ConfigProcessor\Validator\SystemConfig\Fields;
 class Password extends AbstractFieldValidator
 {
     /** @inheritDoc */
+    protected function specificKeys(): array
+    {
+        return ['default'];
+    }
+
+    /** @inheritDoc */
     public function validate(string $fieldId, array $fieldData, array $baseMeta): array
     {
         // Trimmed to avoid accidental copy-paste whitespace.

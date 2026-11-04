@@ -29,4 +29,11 @@ interface FieldValidatorInterface
      * @throws InvalidConfigException
      */
     public function validate(string $fieldId, array $fieldData, array $baseMeta): array;
+
+    /**
+     * Returns every key accepted by this field type, including the common ones.
+     *
+     * @return list<string>
+     */
+    public function allowedKeys(): array;
 }
